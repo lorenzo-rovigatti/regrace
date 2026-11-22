@@ -59,9 +59,16 @@ buildinfo.h : buildinfo$(EXE) $(GRSRCS) $(GUISRCS)
 	./buildinfo$(EXE) > t.h
 	mv -f t.h $@
 
+# pars.c is distributed: if yacc is not available (and pars.yacc only
+# looks newer, e.g. after a git checkout), keep the distributed file
 $(PARS_C) : $(PARS_Y)
-	$(YACC) -t $?
-	mv -f y.tab.c $@
+	@if $(YACC) -t $? ; then \
+		mv -f y.tab.c $@ ; \
+	elif test -f $@ ; then \
+		echo "$(YACC) failed: using the distributed $@"; touch $@ ; \
+	else \
+		exit 1 ; \
+	fi
 
 
 install : $(GRACE)

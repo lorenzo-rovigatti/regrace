@@ -25,13 +25,25 @@ LATEX       = latex
 PDFLATEX    = pdflatex
 
 .sgml.html :
-	$(SGML2HTML) $<
+	@if linuxdoc --version > /dev/null 2>&1 ; then \
+		echo "$(SGML2HTML) $<"; $(SGML2HTML) $< ; \
+	elif test -f $@ ; then \
+		echo "linuxdoc not found: using the distributed $@"; touch $@ ; \
+	else \
+		echo "linuxdoc is needed to make $@"; exit 1 ; \
+	fi
 
 .sgml.dvi :
 	$(SGML2DVI) $<
 	
 .sgml.pdf :
-	$(SGML2PDF) $<
+	@if linuxdoc --version > /dev/null 2>&1 ; then \
+		echo "$(SGML2PDF) $<"; $(SGML2PDF) $< ; \
+	elif test -f $@ ; then \
+		echo "linuxdoc not found: using the distributed $@"; touch $@ ; \
+	else \
+		echo "linuxdoc is needed to make $@"; exit 1 ; \
+	fi
 	
 .sgml.tex :
 	$(SGML2LATEX) $<
