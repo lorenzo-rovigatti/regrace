@@ -968,6 +968,70 @@ extern "C" int initialize_gui(int *argc, char **argv)
 }
 
 /*
+ * GRACE_FLTK_OPEN="Plot/Plot appearance...;Edit/Data sets..." activates
+ * the given menu entries at startup (mnemonics are ignored). Used to test
+ * the dialogs without user interaction.
+ */
+static std::string strip_amp(const char *s)
+{
+    std::string r;
+    for (; *s; s++) {
+        if (*s == '&' && s[1] != '&') {
+            continue;
+        }
+        r += *s;
+    }
+    return r;
+}
+
+static void open_menu_items_from_env(void)
+{
+    const char *env = getenv("GRACE_FLTK_OPEN");
+    std::string list, path;
+    size_t start = 0, end;
+
+    if (env == NULL) {
+        return;
+    }
+    list = env;
+    while (start <= list.size()) {
+        end = list.find(';', start);
+        if (end == std::string::npos) {
+            end = list.size();
+        }
+        path = list.substr(start, end - start);
+        start = end + 1;
+        if (path.empty()) {
+            continue;
+        }
+        for (int i = 0; i < menu_bar->size(); i++) {
+            char buf[1024];
+            const Fl_Menu_Item *mi = &menu_bar->menu()[i];
+            if (mi->label() == NULL ||
+                menu_bar->item_pathname(buf, sizeof(buf), mi) != 0) {
+                continue;
+            }
+            std::string p = strip_amp(buf), q;
+            if (!p.empty() && p[0] == '/') {
+                p = p.substr(1);
+            }
+            /* item_pathname() keeps the escapes of '/' */
+            for (size_t k = 0; k < p.size(); k++) {
+                if (p[k] == '\\' && k + 1 < p.size()) {
+                    k++;
+                }
+                q += p[k];
+            }
+            if (q == path) {
+                menu_bar->picked(mi);
+                break;
+            }
+        }
+        Fl::flush();
+    }
+}
+
+/*
  * build the GUI
  */
 extern "C" void startup_gui(void)
@@ -1033,6 +1097,10 @@ extern "C" void startup_gui(void)
     }
 
     Fl::add_handler(zoom_event_handler);
+    
+    fl_register_app_shell(main_win);
+    fl_install_help_keys();
+    init_option_menus();
 
     if (get_pagelayout() == PAGE_FIXED) {
         unsigned int w, h;
@@ -1072,6 +1140,9 @@ extern "C" void startup_gui(void)
 
     update_all();
     drawgraph();
+
+    /* for automated GUI tests: open menu entries given in the environment */
+    open_menu_items_from_env();
 
     Fl::run();
 
@@ -1236,9 +1307,4 @@ extern "C" void xdrawgraph(void)
 	drawgraph();
 	unset_wait_cursor();
     }
-}
-
-extern "C" int init_option_menus(void)
-{
-    return RETURN_SUCCESS;
 }

@@ -827,29 +827,6 @@ extern "C" void HelpCB(void *data)
 
 /* ------------------------------------------------------------------ */
 
-extern "C" void update_all(void)
-{
-    int gno = get_cg();
-
-    if (!inwin) {
-        return;
-    }
-
-    update_set_lists(gno);
-    update_ticks(gno);
-    update_props_items();
-    update_hotlinks();
-    update_prune_frame();
-    update_locator_items(gno);
-    set_stack_message();
-    set_left_footer(NULL);
-}
-
-extern "C" void update_all_cb(void *data)
-{
-    update_all();
-}
-
 /* ------------------------------------------------------------------ */
 /* GUI appearance (new in the FLTK GUI) */
 

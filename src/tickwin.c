@@ -38,8 +38,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <Xm/Xm.h>
-#include <Xm/ScrolledW.h>
 
 #include "globals.h"
 #include "protos.h"
@@ -150,8 +148,8 @@ void create_axes_dialog(int axisno)
         int i;
         char buf[32];
         OptionItem opitems[MAXAXES];
-        Widget rc_head, rc, rc2, rc3, fr, sw, axes_main, axes_label,
-            axes_ticklabel, axes_tickmark, axes_special, vbar;
+        Widget rc_head, rc, rc2, rc3, fr, axes_main, axes_label,
+            axes_ticklabel, axes_tickmark, axes_special;
 
         axes_dialog = CreateDialogForm(app_shell, "Axes");
 
@@ -418,12 +416,7 @@ void create_axes_dialog(int axisno)
             3, SPIN_TYPE_INT, 0.0, (double) MAX_TICKS, 1.0);
         CreateLabel(axes_special, "Tick location - Label:");
 
-        sw = XtVaCreateManagedWidget("sw",
-                                     xmScrolledWindowWidgetClass, axes_special,
-				     XmNheight, 240,
-                                     XmNscrollingPolicy, XmAUTOMATIC,
-                                     NULL);
-        rc = CreateVContainer(sw);
+        rc = CreateScrolledVContainer(axes_special, 240);
 
         for (i = 0; i < MAX_TICKS; i++) {
             rc3 = CreateHContainer(rc);
@@ -447,14 +440,6 @@ void create_axes_dialog(int axisno)
                                          NULL);
 
         CreateAACDialog(axes_dialog, rc, axes_aac_cb, NULL);
-        
-        /* set reasonable scrolling */
-        vbar = XtNameToWidget(sw, "VertScrollBar");
-        if (vbar) {
-            int maxval;
-            XtVaGetValues(vbar, XmNmaximum, &maxval, NULL);
-            XtVaSetValues(vbar, XmNincrement, (int) rint(maxval/MAX_TICKS), NULL);
-        }
     }
     update_ticks(cg);
     
@@ -766,7 +751,7 @@ void update_ticks(int gno)
     char buf[128];
     int i;
 
-    if (axes_dialog && XtIsManaged(axes_dialog)) {
+    if (axes_dialog && IsManaged(axes_dialog)) {
         t = get_graph_tickmarks(gno, curaxis);
         if (!t) {
             return;

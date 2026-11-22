@@ -48,7 +48,7 @@
 #include "psdrv.h"
 #include "protos.h"
 
-#ifdef MOTIF_GUI
+#ifndef NONE_GUI
 #  include "motifinc.h"
 #endif
 
@@ -1053,7 +1053,7 @@ int eps_op_parser(char *opstring)
     }
 }
 
-#ifdef MOTIF_GUI
+#ifndef NONE_GUI
 
 static void update_ps_setup_frame(void);
 static int set_ps_setup_proc(void *data);

@@ -39,6 +39,7 @@
 #ifdef MOTIF_GUI
 #  include <Xm/Xm.h>
 #else
+#  include "motifinc.h"
 typedef unsigned long XtInputId;
 #endif
 
@@ -161,9 +162,7 @@ void create_plot_frame(void);
 void create_plot_frame_cb(void *data);
 void create_props_frame(void *data);
 
-#ifdef MOTIF_GUI
 void create_fonttool(Widget w);
-#endif
 void create_fonttool_cb(void *data);
 
 void set_wait_cursor(void);

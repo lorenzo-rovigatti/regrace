@@ -33,7 +33,7 @@ GROBJS =  main$(O) plotone$(O) files$(O) ssdata$(O) utils$(O) drawticks$(O) \
 # X/MOTIF sources
 #
 
-MOTIF_GUISRCS =  Tab.c motifutils.c \
+MOTIF_GUISRCS =  Tab.c motifutils.c guiutils.c \
 	compwin.c comwin.c eblockwin.c \
 	editpwin.c events.c featext.c fileswin.c plotwin.c \
 	graphappwin.c helpwin.c hotwin.c \
@@ -42,7 +42,7 @@ MOTIF_GUISRCS =  Tab.c motifutils.c \
 	setwin.c strwin.c setappwin.c \
         tickwin.c worldwin.c fontwin.c xutil.c x11drv.c xmgrace.c
 
-MOTIF_GUIOBJS =  Tab$(O) motifutils$(O) \
+MOTIF_GUIOBJS =  Tab$(O) motifutils$(O) guiutils$(O) \
 	compwin$(O) comwin$(O) eblockwin$(O) \
 	editpwin$(O) events$(O) featext$(O) fileswin$(O) plotwin$(O) \
 	graphappwin$(O) helpwin$(O) hotwin$(O) \
@@ -51,16 +51,22 @@ MOTIF_GUIOBJS =  Tab$(O) motifutils$(O) \
 	setwin$(O) strwin$(O) setappwin$(O) \
         tickwin$(O) worldwin$(O) fontwin$(O) xutil$(O) x11drv$(O) xmgrace$(O)
 
-
 #
-# FLTK sources
+# FLTK sources: the FLTK-specific files (fl_*) and the dialogs shared
+# with the Motif GUI
 #
 
-FLTK_GUISRCS = fl_mainwin.cpp fl_drv.cpp fl_dialogs.cpp \
-	fl_events.c fl_stubs.c
+FLTK_GUISRCS = fl_mainwin.cpp fl_drv.cpp fl_dialogs.cpp fl_motifutils.cpp \
+	fl_fontwin.cpp fl_events.c fl_stubs.c guiutils.c \
+	compwin.c eblockwin.c graphappwin.c locatewin.c miscwin.c \
+	nonlwin.c plotwin.c printwin.c ptswin.c setappwin.c setwin.c \
+	tickwin.c worldwin.c
 
-FLTK_GUIOBJS = fl_mainwin$(O) fl_drv$(O) fl_dialogs$(O) \
-	fl_events$(O) fl_stubs$(O)
+FLTK_GUIOBJS = fl_mainwin$(O) fl_drv$(O) fl_dialogs$(O) fl_motifutils$(O) \
+	fl_fontwin$(O) fl_events$(O) fl_stubs$(O) guiutils$(O) \
+	compwin$(O) eblockwin$(O) graphappwin$(O) locatewin$(O) miscwin$(O) \
+	nonlwin$(O) plotwin$(O) printwin$(O) ptswin$(O) setappwin$(O) setwin$(O) \
+	tickwin$(O) worldwin$(O)
 
 #
 # The GUI actually built (GUI_SRCS and GUI_OBJS are set by configure)

@@ -26,6 +26,19 @@ Fl_Widget *fl_canvas_widget(void);
 /* the main application window (fl_mainwin.cpp) */
 Fl_Window *fl_main_window(void);
 
+/* the dialog widget layer (fl_motifutils.cpp) */
+void fl_register_app_shell(Fl_Window *win);
+void fl_install_help_keys(void);
+
+/* putting custom FLTK widgets in dialogs made with the motifinc.h API */
+typedef struct _GraceWidget *Widget;
+void fl_begin_in(Widget parent);
+void fl_end_in(void);
+Widget fl_wrap_widget(Widget parent, Fl_Widget *w, int pref_w, int pref_h,
+    int hexp, int vexp);
+Fl_Widget *fl_widget_of(Widget w);
+void fl_set_text_changed_cb(Widget w, void (*cb)(void *), void *data);
+
 /* apply the GUI look (scheme, colors, font, scale) from preferences */
 void fl_apply_gui_prefs(void);
 

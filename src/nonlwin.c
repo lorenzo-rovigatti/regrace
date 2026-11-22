@@ -37,8 +37,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <Xm/Xm.h>
-#include <Xm/ScrolledW.h>
 
 #include "globals.h"
 #include "graphs.h"
@@ -120,7 +118,7 @@ void create_nonl_frame(void *data)
         OptionItem np_option_items[MAXPARM + 1], option_items[5];
         Widget menubar, menupane;
         Widget nonl_tab, nonl_main, nonl_advanced;
-        Widget sw, title_fr, fr3, rc1, rc2, rc3, lab;
+        Widget title_fr, fr3, rc1, rc2, rc3, lab;
 
 	nonl_frame = CreateDialogForm(app_shell, "Non-linear curve fitting");
 
@@ -157,7 +155,6 @@ void create_nonl_frame(void *data)
         AddDialogFormChild(nonl_frame, nonl_set_item->form);
 	
 	title_fr = CreateFrame(nonl_frame, NULL);
-	XtVaSetValues(title_fr, XmNshadowType, XmSHADOW_ETCHED_OUT, NULL);
 	nonl_title_item = CreateLabel(title_fr, nonl_opts.title);
         AddDialogFormChild(nonl_frame, title_fr);
 
@@ -188,13 +185,7 @@ void create_nonl_frame(void *data)
             SPIN_TYPE_INT, 0.0, 500.0, 5.0);
 	SetSpinChoice(nonl_nsteps_item, 5.0);
         
-	sw = XtVaCreateManagedWidget("sw",
-				     xmScrolledWindowWidgetClass, nonl_main,
-				     XmNheight, 180,
-				     XmNscrollingPolicy, XmAUTOMATIC,
-				     NULL);
-
-	rc2 = CreateVContainer(sw);
+	rc2 = CreateScrolledVContainer(nonl_main, 180);
 	for (i = 0; i < MAXPARM; i++) {
 	    nonl_parm_item[i] = CreateHContainer(rc2);
 	    sprintf(buf, "A%1d: ", i);
@@ -286,14 +277,12 @@ void update_nonl_frame(void)
     int i;
     
     if (nonl_frame) {
-        XmString str = XmStringCreateLocalized(nonl_opts.title);
-        XtVaSetValues(nonl_title_item, XmNlabelString, str, NULL);
+        SetLabel(nonl_title_item, nonl_opts.title);
 /* 
  * If I define only XmALIGNMENT_CENTER (default!) then it's ignored - bug in Motif???
  */
-    	XtVaSetValues(nonl_title_item, XmNalignment, XmALIGNMENT_BEGINNING, NULL);
-        XtVaSetValues(nonl_title_item, XmNalignment, XmALIGNMENT_CENTER, NULL);
-        XmStringFree(str);
+        AlignLabel(nonl_title_item, ALIGN_BEGINNING);
+        AlignLabel(nonl_title_item, ALIGN_CENTER);
         
         SetTextString(nonl_formula_item, nonl_opts.formula);
         sprintf(buf, "%g", nonl_opts.tolerance);
@@ -310,11 +299,11 @@ void update_nonl_frame(void)
             xv_setstr(nonl_uppb_item[i], buf);
             SetSensitive(nonl_uppb_item[i], nonl_parms[i].constr);
             if (i < nonl_opts.parnum) {
-                if (!XtIsManaged (nonl_parm_item[i])) {
+                if (!IsManaged(nonl_parm_item[i])) {
                     ManageChild(nonl_parm_item[i]);
                 }
             } else {
-                if (XtIsManaged (nonl_parm_item[i])) {
+                if (IsManaged(nonl_parm_item[i])) {
                     UnmanageChild(nonl_parm_item[i]);
                 }
             }

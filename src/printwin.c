@@ -549,7 +549,7 @@ static int do_prfilesel_proc(char *filename, void *data)
 {
     xv_setstr(printfile_item, filename);
     strcpy(print_file, filename);
-    XtVaSetValues(printfile_item, XmNcursorPosition, strlen(filename), NULL);
+    SetTextCursorPos(printfile_item, strlen(filename));
     return TRUE;
 }
 

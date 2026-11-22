@@ -33,10 +33,26 @@
 #ifndef __MOTIFINC_H_
 #define __MOTIFINC_H_
 
+#include <config.h>
+
+#ifdef MOTIF_GUI
 /* for Widget */
-#include <X11/Intrinsic.h>
+#  include <X11/Intrinsic.h>
 /* for XmString; TODO: remove! */
-#include <Xm/Xm.h>
+#  include <Xm/Xm.h>
+#else
+/* toolkit-independent stand-ins for the Xt types used by the API */
+typedef struct _GraceWidget *Widget;
+typedef int Boolean;
+typedef char *String;
+typedef void *XtPointer;
+typedef unsigned int Cardinal;
+#  include <string.h>
+#  ifndef True
+#    define True  1
+#    define False 0
+#  endif
+#endif
 
 /* 
  * Accept/Apply/Close for aac_cb callbacks
@@ -313,10 +329,12 @@ int GetListChoices(ListStructure *listp, int **values);
 int GetSingleListChoice(ListStructure *listp, int *value);
 void AddListChoiceCB(ListStructure *listp, List_CBProc cbproc, void *anydata);
 
+#ifdef MOTIF_GUI
 void list_selectall_action(Widget w, XEvent *e, String *par, Cardinal *npar);
 void list_unselectall_action(Widget w, XEvent *e, String *par, Cardinal *npar);
 void list_invertselection_action(Widget w, XEvent *e, String *par,
                                  Cardinal *npar);
+#endif
 
 SpinStructure *CreateSpinChoice(Widget parent, char *s, int len,
                         int type, double min, double max, double incr);
@@ -330,7 +348,9 @@ void SetTextString(TextStructure *cst, char *s);
 void AddTextInputCB(TextStructure *cst, Text_CBProc cbproc, void *data);
 int GetTextCursorPos(TextStructure *cst);
 void TextInsert(TextStructure *cst, int pos, char *s);
+#ifdef MOTIF_GUI
 void cstext_edit_action(Widget w, XEvent *e, String *par, Cardinal *npar);
+#endif
 
 FSBStructure *CreateFileSelectionBox(Widget parent, char *s);
 void AddFileSelectionBoxCB(FSBStructure *fsbp, FSB_CBProc cbproc, void *anydata);
@@ -423,6 +443,28 @@ void SetLabel(Widget w, char *s);
 void AlignLabel(Widget w, int alignment);
 void SetFixedFont(Widget w);
 
+/* added for the toolkit-independent dialogs */
+int IsManaged(Widget w);
+int IsSensitive(Widget w);
+Widget CreateScrolledVContainer(Widget parent, int height);
+void SetTextCursorPos(Widget w, int pos);
+Widget CreateDialogShell(Widget parent, char *s);
+Widget CreateDialogRC(Widget shell);
+Widget CreateColumnGrid(Widget parent, int nrows);
+void AddDialogFormBottomChild(Widget form, Widget child);
+
+/* simple tables of strings */
+Widget CreateTable(Widget parent, int nrows, int ncols,
+    int visrows, int viscols, int editable);
+void TableSetColLabels(Widget w, char **labels);
+void TableSetRowLabels(Widget w, char **labels);
+void TableSetColWidth(Widget w, int col, int width);
+void TableSetCell(Widget w, int row, int col, char *s);
+char *TableGetCell(Widget w, int row, int col);
+int TableGetNumRows(Widget w);
+void TableSetNumRows(Widget w, int nrows, char **rowlabels);
+void TableCommitEdit(Widget w);
+
 Widget CreateMenuBar(Widget parent);
 Widget CreateMenu(Widget parent, char *label, char mnemonic, int help);
 Widget CreateMenuButton(Widget parent, char *label, char mnemonic,
@@ -437,7 +479,9 @@ Widget CreateMenuLabel(Widget parent, char *name);
 void AddHelpCB(Widget w, char *ha);
 void ContextHelpCB(void *data);
 
+#ifdef MOTIF_GUI
 char *GetStringSimple(XmString xms);
+#endif
 
 char *xv_getstr(Widget w);
 Boolean xv_evalexpr(Widget w, double *);

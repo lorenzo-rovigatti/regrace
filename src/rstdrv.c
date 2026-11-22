@@ -57,7 +57,7 @@
 #  include <png.h>
 #endif
 
-#ifdef MOTIF_GUI
+#ifndef NONE_GUI
 #  include "motifinc.h"
 #endif
 
@@ -996,7 +996,7 @@ int png_op_parser(char *opstring)
 }
 #endif
 
-#ifdef MOTIF_GUI
+#ifndef NONE_GUI
 
 static void update_pnm_setup_frame(void);
 static int set_pnm_setup_proc(void *data);
