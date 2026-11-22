@@ -53,7 +53,7 @@
 
 #include "protos.h"
 
-#ifndef NONE_GUI
+#ifdef MOTIF_GUI
 #  include "motifinc.h"
 #endif
 
@@ -678,7 +678,7 @@ int pdf_op_parser(char *opstring)
     }
 }
 
-#ifndef NONE_GUI
+#ifdef MOTIF_GUI
 
 static void update_pdf_setup_frame(void);
 static int set_pdf_setup_proc(void *data);

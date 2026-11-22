@@ -44,7 +44,7 @@ void pdf_leavegraphics(void);
 
 int pdf_op_parser(char *opstring);
 
-#if defined(NONE_GUI)
+#if !defined(MOTIF_GUI)
 #  define pdf_gui_setup NULL
 #else
 void pdf_gui_setup(void);

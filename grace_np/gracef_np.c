@@ -78,6 +78,10 @@ int F77_FNAME(gracecommandf) (const char* arg, int length)
 #else /* don't include Fortran wrapper */
 
 /* To make ANSI C happy about non-empty file */
-void F77_FNAME(_gracef_np_c_dummy_func) (void) {}
+#  ifdef NEED_F77_UNDERSCORE
+void _gracef_np_c_dummy_func_(void) {}
+#  else
+void _gracef_np_c_dummy_func(void) {}
+#  endif
 
 #endif /* WITH_F77_WRAPPER */

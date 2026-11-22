@@ -62,13 +62,13 @@ void ps_leavegraphics(void);
 int ps_op_parser(char *opstring);
 int eps_op_parser(char *opstring);
 
-#if defined(NONE_GUI)
+#if !defined(MOTIF_GUI)
 #  define ps_gui_setup NULL
 #else
 void ps_gui_setup(void);
 #endif
 
-#if defined(NONE_GUI)
+#if !defined(MOTIF_GUI)
 #  define eps_gui_setup NULL
 #else
 void eps_gui_setup(void);

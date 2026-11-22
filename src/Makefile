@@ -8,7 +8,7 @@ TOP=..
 
 include $(TOP)/Make.conf
 
-.SUFFIXES : .c $(O)
+.SUFFIXES : .c .cpp $(O)
 
 GRBATCH=gracebat$(EXE)
 
@@ -17,6 +17,8 @@ GRACECLI=grace$(EXE)
 CEPHES_LIB=$(TOP)/cephes/libcephes.a
 
 CFLAGS=$(CFLAGS0) -I$(TOP) -I. $(T1_INC) $(XBAE_INC) $(CPPFLAGS) $(GUI_FLAGS)
+
+CXXFLAGS=$(CXXFLAGS0) -I$(TOP) -I. $(T1_INC) $(CPPFLAGS) $(GUI_FLAGS)
 
 LIBS=$(GUI_LIBS) $(CEPHES_LIB) $(NETCDF_LIBS) $(FFTW_LIB) \
 	$(T1_LIB) $(PDF_LIB) $(JPEG_LIB) $(PNG_LIB) $(Z_LIB) \
@@ -36,8 +38,11 @@ $(GROBJS) $(GUIOBJS) $(PARS_O) buildinfo$(O) : $(TOP)/config.h
 
 include Make.dep
 
-xmgrace$(EXE) : $(GROBJS) $(PARS_C) $(GUIOBJS) $(CEPHES_LIB)
-	$(CC) $(CFLAGS) $(GROBJS) $(GUIOBJS) -o $@ $(LDFLAGS) $(LIBS)
+xmgrace$(EXE) : $(GROBJS) $(PARS_C) $(GUIOBJS) $(CEPHES_LIB) $(GUI_DEPLIBS)
+	$(GUI_LD) $(CFLAGS) $(GROBJS) $(GUIOBJS) -o $@ $(LDFLAGS) $(LIBS)
+
+.cpp$(O) :
+	$(CXX) $(CXXFLAGS) -c $<
 
 grace$(EXE) : $(GROBJS) $(PARS_C) $(CEPHES_LIB)
 	$(CC) $(CFLAGS) $(GROBJS) -o $@ $(LDFLAGS) $(LIBS)

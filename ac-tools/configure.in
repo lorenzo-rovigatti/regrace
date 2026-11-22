@@ -22,6 +22,10 @@ AC_SUBST(GRACE_HOME)
 AC_SUBST(GUI_FLAGS)
 AC_SUBST(FC)
 AC_SUBST(GUI_LIBS)
+AC_SUBST(GUI_SRCS)
+AC_SUBST(GUI_OBJS)
+AC_SUBST(GUI_DEPLIBS)
+AC_SUBST(GUI_LD)
 AC_SUBST(NOGUI_LIBS)
 AC_SUBST(NETCDF_LIBS)
 AC_SUBST(XDR_LIB)
@@ -107,6 +111,31 @@ AC_ARG_WITH(bundled_xbae,
   no)  bundled_xbae=false;;
   *) AC_MSG_ERROR(bad value ${withval} for --with-bundled-xbae) ;;
 esac],[bundled_xbae=true])
+
+dnl **** GUI toolkit
+AC_ARG_WITH(gui,
+[  --with-gui=TYPE              GUI toolkit: fltk, motif or none [[fltk]]],
+[case "${withval}" in
+  fltk|motif|none) gui_type="${withval}" ;;
+  yes) gui_type=fltk ;;
+  no)  gui_type=none ;;
+  *) AC_MSG_ERROR(bad value ${withval} for --with-gui) ;;
+esac],[gui_type=fltk])
+
+dnl **** use bundled FLTK
+AC_ARG_WITH(bundled_fltk,
+[  --with-bundled-fltk          use the bundled FLTK library [[yes]]],
+[case "${withval}" in
+  yes) bundled_fltk=true ;;
+  no)  bundled_fltk=false;;
+  *) AC_MSG_ERROR(bad value ${withval} for --with-bundled-fltk) ;;
+esac],[bundled_fltk=true])
+
+dnl **** use an installed FLTK
+AC_ARG_WITH(fltk_config,
+[  --with-fltk-config=PROG      use PROG to get the settings of an installed
+                               FLTK (>= 1.4); implies --without-bundled-fltk],
+[FLTK_CONFIG="${withval}"; bundled_fltk=false])
 
 dnl **** use netcdf  
 AC_ARG_ENABLE(netcdf,
@@ -271,6 +300,19 @@ AC_CANONICAL_HOST
 
 dnl Checks for C compiler
 AC_PROG_CC
+
+dnl Checks for C++ compiler (for the FLTK GUI)
+grace_cxxflags_set=${CXXFLAGS+set}
+AC_PROG_CXX
+if test "x$grace_cxxflags_set" != "xset"
+then
+  if test "x${GXX}" = "xyes"
+  then
+    CXXFLAGS="-O2 -Wall"
+  else
+    CXXFLAGS="-O"
+  fi
+fi
 
 AC_ISC_POSIX
 AC_AIX
@@ -595,10 +637,65 @@ dnl **** Choose a GUI *****
 
 dnl **** default is gui-less
 GRACE=grace
+GUI_SRCS=""
+GUI_OBJS=""
+GUI_DEPLIBS=""
+GUI_LD='$(CC)'
+fltk_dir=""
 
 AC_PATH_XTRA
-if test "$no_x" = yes; then
+if test "$no_x" = yes || test "$gui_type" = none; then
   GUI="NONE_GUI"
+  AC_MSG_RESULT(--> No GUI will be built)
+elif test "$gui_type" = fltk; then
+dnl **** FLTK GUI
+  if test "x$CXX" = "x" || test "x$ac_cv_prog_cxx_works" = "xno"; then
+    AC_MSG_ERROR(a C++ compiler is needed for the FLTK GUI)
+  fi
+  if test $bundled_fltk = true; then
+    AC_MSG_RESULT(--> Configuring the bundled FLTK library)
+    if test ! -x fltk/configure; then
+      AC_MSG_ERROR(the bundled FLTK sources (fltk/) are missing)
+    fi
+    fltk_args="--disable-gl --disable-wayland --disable-forms --disable-shared --enable-localjpeg --enable-localpng --enable-localzlib"
+    if (cd fltk && CC="$CC" CXX="$CXX" ./configure $fltk_args > config.grace.log 2>&1); then
+      :
+    else
+      AC_MSG_ERROR(configuration of the bundled FLTK failed; see fltk/config.grace.log)
+    fi
+    fltk_major=`sed -n 's/^.define FL_MAJOR_VERSION[[ 	]]*\([[0-9]][[0-9]]*\).*/\1/p' fltk/FL/Enumerations.H`
+    fltk_minor=`sed -n 's/^.define FL_MINOR_VERSION[[ 	]]*\([[0-9]][[0-9]]*\).*/\1/p' fltk/FL/Enumerations.H`
+    fltk_patch=`sed -n 's/^.define FL_PATCH_VERSION[[ 	]]*\([[0-9]][[0-9]]*\).*/\1/p' fltk/FL/Enumerations.H`
+    FLTK_CXXFLAGS='-I$(TOP)/fltk'
+    FLTK_LIBS="\$(TOP)/fltk/lib/libfltk.a `sed -n 's/^LDLIBS[[ 	]]*=//p' fltk/makeinclude`"
+    GUI_DEPLIBS='$(TOP)/fltk/lib/libfltk.a'
+    fltk_dir="fltkbuild"
+  else
+    if test "x$FLTK_CONFIG" = "x"; then
+      AC_PATH_PROG(FLTK_CONFIG, fltk-config, no)
+    fi
+    if test "x$FLTK_CONFIG" = "xno"; then
+      AC_MSG_ERROR(fltk-config not found; use --with-bundled-fltk)
+    fi
+    fltk_major=`$FLTK_CONFIG --version | cut -d. -f1`
+    fltk_minor=`$FLTK_CONFIG --version | cut -d. -f2`
+    fltk_patch=`$FLTK_CONFIG --version | cut -d. -f3`
+    FLTK_CXXFLAGS=`$FLTK_CONFIG --cxxflags`
+    FLTK_LIBS=`$FLTK_CONFIG --ldflags`
+  fi
+  fltk_vnum=`expr ${fltk_major:-0} \* 10000 + ${fltk_minor:-0} \* 100 + ${fltk_patch:-0}`
+  if test $fltk_vnum -lt 10400; then
+    AC_MSG_ERROR(FLTK >= 1.4.0 is required; found ${fltk_major}.${fltk_minor}.${fltk_patch})
+  fi
+  AC_MSG_RESULT(--> FLTK ${fltk_major}.${fltk_minor}.${fltk_patch} GUI will be built)
+  AC_DEFINE(WITH_FLTK_GUI)
+  GUI="FLTK_GUI"
+  GUI_FLAGS="$X_CFLAGS $FLTK_CXXFLAGS -DGRACE_FLTK_VERSION=$fltk_vnum"
+  GUI_LIBS="$FLTK_LIBS"
+  GUI_SRCS='$(FLTK_GUISRCS)'
+  GUI_OBJS='$(FLTK_GUIOBJS)'
+  GUI_LD='$(CXX)'
+  GRACE=xmgrace
 else
 dnl **** Check for Motif
   GUI_LIBS="-lXt -lXext -lX11 $X_PRE_LIBS $X_EXTRA_LIBS"
@@ -643,6 +740,8 @@ dnl **** Check for Motif
     GUI_LIBS="$MOTIF_LIB $GUI_LIBS"
     GUI="MOTIF_GUI"
     GUI_FLAGS="$X_CFLAGS"
+    GUI_SRCS='$(MOTIF_GUISRCS)'
+    GUI_OBJS='$(MOTIF_GUIOBJS)'
     GRACE=xmgrace
 
     dnl **** Special Motif checks
@@ -688,7 +787,7 @@ dnl **** Check for Motif
 fi
 
 dnl **** Final list of subdirs
-SUBDIRS="cephes ${t1lib_dir} ${xbae_dir} src ${grconvert_dir} grace_np fonts templates doc examples auxiliary"
+SUBDIRS="cephes ${t1lib_dir} ${xbae_dir} ${fltk_dir} src ${grconvert_dir} grace_np fonts templates doc examples auxiliary"
 
 dnl **** Create Make.conf
 AC_OUTPUT(Make.conf:ac-tools/Make.conf.in)

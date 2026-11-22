@@ -64,7 +64,7 @@ void rst_leavegraphics(void);
 
 int pnminitgraphics(void);
 int pnm_op_parser(char *opstring);
-#ifdef NONE_GUI
+#ifndef MOTIF_GUI
 #  define pnm_gui_setup NULL
 #else
 void pnm_gui_setup(void);
@@ -73,7 +73,7 @@ void pnm_gui_setup(void);
 #ifdef HAVE_LIBJPEG
 int jpginitgraphics(void);
 int jpg_op_parser(char *opstring);
-#  ifdef NONE_GUI
+#  ifndef MOTIF_GUI
 #    define jpg_gui_setup NULL
 #  else
 void jpg_gui_setup(void);
@@ -83,7 +83,7 @@ void jpg_gui_setup(void);
 #ifdef HAVE_LIBPNG
 int pnginitgraphics(void);
 int png_op_parser(char *opstring);
-#  ifdef NONE_GUI
+#  ifndef MOTIF_GUI
 #    define png_gui_setup NULL
 #  else
 void png_gui_setup(void);

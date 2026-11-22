@@ -8,9 +8,12 @@
 #include <sys/types.h>
 #include <sys/utsname.h>
 #include <time.h>
-#ifndef NONE_GUI
+#ifdef MOTIF_GUI
 #  include <Xm/Xm.h>
 #  include <Xbae/patchlevel.h>
+#endif
+#if defined(FLTK_GUI) && !defined(GRACE_FLTK_VERSION)
+#  define GRACE_FLTK_VERSION 10400
 #endif
 
 #include <t1lib.h>
@@ -66,8 +69,12 @@ static void VersionInfo(FILE *outfile)
 /* We don't want to reproduce the complete config.h,
    but those settings which may be related to problems at runtime */
 
-#ifdef NONE_GUI
+#if defined(NONE_GUI)
     fprintf(outfile, "#define BI_GUI \"none\"\n");
+#elif defined(FLTK_GUI)
+    fprintf(outfile, "#define BI_GUI \"FLTK %d.%d.%d\"\n",
+        GRACE_FLTK_VERSION/10000, (GRACE_FLTK_VERSION/100) % 100,
+        GRACE_FLTK_VERSION % 100);
 #else
     fprintf(outfile, "#define BI_GUI \"%s\"\n", XmVERSION_STRING);
     fprintf(outfile, "#define BI_GUI_XBAE \"%i\"\n", XbaeVersion);

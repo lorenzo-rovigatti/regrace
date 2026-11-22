@@ -68,6 +68,7 @@ YACC=@YACC@
 
 # C compiler
 CC=@CC@
+CXX=@CXX@
 
 # F77 compiler
 FC=@FC@
@@ -95,6 +96,7 @@ CPPFLAGS=@CPPFLAGS@
 
 # C flags
 CFLAGS0=@CFLAGS@
+CXXFLAGS0=@CXXFLAGS@
 
 # GUI flags
 GUI_FLAGS=@GUI_FLAGS@
@@ -107,6 +109,16 @@ NOGUI_LIBS=@NOGUI_LIBS@
 
 # GUI libraries
 GUI_LIBS=@X_LIBS@ @GUI_LIBS@
+
+# GUI sources and objects (see src/Make.common)
+GUI_SRCS=@GUI_SRCS@
+GUI_OBJS=@GUI_OBJS@
+
+# libraries built along with Grace the GUI depends on
+GUI_DEPLIBS=@GUI_DEPLIBS@
+
+# linker of the GUI binary
+GUI_LD=@GUI_LD@
 
 # Command used to print
 PRINT_CMD=@PRINT_CMD@

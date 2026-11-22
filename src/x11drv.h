@@ -28,7 +28,9 @@
 
 #include "defines.h"
 
-#include <X11/Xlib.h>
+#ifdef MOTIF_GUI
+#  include <X11/Xlib.h>
+#endif
 
 #define CMAP_INSTALL_NEVER      0
 #define CMAP_INSTALL_ALWAYS     1
@@ -44,7 +46,9 @@ void xlibdrawpolyline(VPoint *vps, int n, int mode);
 void xlibfillpolygon(VPoint *vps, int npoints);
 void xlibdrawarc(VPoint vp1, VPoint vp2, int angle1, int angle2);
 void xlibfillarc(VPoint vp1, VPoint vp2, int angle1, int angle2, int mode);
+#ifdef MOTIF_GUI
 void xlibredraw(Window window, int x, int y, int widht, int height);
+#endif
 void xlibputpixmap(VPoint vp, int width, int height, 
      char *databits, int pixmap_bpp, int bitmap_pad, int pixmap_type);
 
@@ -54,3 +58,5 @@ int xconvxlib(double x);
 int yconvxlib(double y);
 void xlibVPoint2dev(VPoint vp, int *x, int *y);
 VPoint xlibdev2VPoint(int x, int y);
+
+extern int install_cmap;

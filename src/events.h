@@ -37,8 +37,10 @@
 
 #include <config.h>
 
-#include <X11/Xlib.h>
-#include <X11/Intrinsic.h>
+#ifdef MOTIF_GUI
+#  include <X11/Xlib.h>
+#  include <X11/Intrinsic.h>
+#endif
 
 /* for canvas event proc */
 typedef enum {
@@ -104,7 +106,9 @@ typedef enum {
                               /* coordinates)                             */  
 
 void anchor_point(int curx, int cury, VPoint curvp);
+#ifdef MOTIF_GUI
 void my_proc(Widget parent, XtPointer data, XEvent *event);
+#endif
 void set_actioncb(void *data);
 void set_action(CanvasAction act);
 void track_point(int gno, int setno, int *loc, int shift);
@@ -127,6 +131,7 @@ void newworld(int gno, int axes, VPoint vp1, VPoint vp2);
 void push_and_zoom(void);
 
 /* action routines */
+#ifdef MOTIF_GUI
 void set_viewport_action( Widget, XKeyEvent *, String *, Cardinal * );
 void enable_zoom_action( Widget, XKeyEvent *, String *, Cardinal * );
 void autoscale_action( Widget, XKeyEvent *, String *, Cardinal * );
@@ -141,6 +146,7 @@ void place_legend_action( Widget, XKeyEvent *, String *, Cardinal * );
 void place_timestamp_action( Widget, XKeyEvent *, String *, Cardinal * );
 void refresh_hotlink_action( Widget, XKeyEvent *, String *, Cardinal * );
 void exit_abruptly_action( Widget, XKeyEvent *, String *, Cardinal * );
+#endif
 
 void update_point_locator(int gno, int setno, int loc);
 void get_tracking_props(int *setno, int *move_dir, int *add_at);

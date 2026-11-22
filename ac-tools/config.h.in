@@ -365,7 +365,12 @@
 /* Define if you have (and want to use) editres  */
 #undef WITH_EDITRES
 
-#if (defined(HAVE_MOTIF) && !defined(X_DISPLAY_MISSING))
+/* Define if the FLTK-based GUI is to be built */
+#undef WITH_FLTK_GUI
+
+#if defined(WITH_FLTK_GUI)
+#  define FLTK_GUI
+#elif (defined(HAVE_MOTIF) && !defined(X_DISPLAY_MISSING))
 #  define MOTIF_GUI
 #else
 #  define NONE_GUI

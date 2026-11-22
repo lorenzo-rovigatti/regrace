@@ -34,9 +34,13 @@
 #ifndef __XPROTOS_H_
 #define __XPROTOS_H_
 
-#include <Xm/Xm.h>
-
 #include "defines.h"
+
+#ifdef MOTIF_GUI
+#  include <Xm/Xm.h>
+#else
+typedef unsigned long XtInputId;
+#endif
 
 int initialize_gui(int *argc, char **argv);
 void startup_gui(void);
@@ -44,7 +48,9 @@ void startup_gui(void);
 void set_left_footer(char *s);
 
 void xdrawgraph(void);
+#ifdef MOTIF_GUI
 void expose_resize(Widget w, XtPointer client_data, XmDrawingAreaCallbackStruct *cbs);
+#endif
 
 void setpointer(VPoint vp);
 
@@ -155,7 +161,9 @@ void create_plot_frame(void);
 void create_plot_frame_cb(void *data);
 void create_props_frame(void *data);
 
+#ifdef MOTIF_GUI
 void create_fonttool(Widget w);
+#endif
 void create_fonttool_cb(void *data);
 
 void set_wait_cursor(void);
