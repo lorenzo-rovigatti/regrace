@@ -36,38 +36,31 @@
 
 #include <stdio.h>
 
-#include <Xm/Xm.h>
-#include <Xm/DialogS.h>
-#include <Xm/Label.h>
-#include <Xm/PushB.h>
-#include <Xm/ToggleB.h>
-#include <Xm/RowColumn.h>
-#include <Xm/List.h>
 
 #include "globals.h"
 #include "graphs.h"
 #include "parser.h"
+#include "utils.h"
 #include "motifinc.h"
 #include "protos.h"
 
 static Widget hotlink_frame = (Widget) NULL;
 static SetChoiceItem hotlink_set_item;
-static Widget hotlink_list_item;
+static ListStructure *hotlink_list_item;
 static Widget hotlink_file_item;
 static Widget *hotlink_source_item;
 
-void create_hotfiles_popup(Widget w, XtPointer client_data, XtPointer call_data);
+void create_hotfiles_popup(void *client_data);
 
 /*
  * establish hotlinks by associating a set with a column in a file
  * or the stdout of a process
  */
-static void do_hotlink_proc(Widget w, XtPointer client_data, XtPointer call_data)
+static void do_hotlink_proc(void *client_data)
 {
     int i, numset, src, *sets;
     char fname[256];
     char buf[256];
-    XmString xms;
 
     set_wait_cursor();
 
@@ -87,16 +80,6 @@ static void do_hotlink_proc(Widget w, XtPointer client_data, XtPointer call_data
     }
 
 	for( i=0; i<numset; i++ ) {
-		if( numset == 1 )
-			sprintf(buf, "G%d.S%d -> %s -> %s", get_cg(), sets[i],
-								src==0 ? "DISK" : "PIPE", fname );
-		else
-			sprintf(buf, "G%d.S%d -> %s -> %s:%d", get_cg(), sets[i], 
-						src == 0 ? "DISK" : "PIPE", fname, i+1);
-
-		xms = XmStringCreateLocalized(buf);
-		XmListAddItemUnselected(hotlink_list_item, xms, 0);
-    	        XmStringFree(xms);
 		set_hotlink(get_cg(), sets[i], i+1, fname, src==0?SOURCE_DISK:SOURCE_PIPE);
 		if( numset == 1 )
 			setcomment( get_cg(), sets[i], fname );
@@ -105,6 +88,7 @@ static void do_hotlink_proc(Widget w, XtPointer client_data, XtPointer call_data
 			setcomment( get_cg(), sets[i], buf );
 		}
 	}
+    update_hotlinks();
 
     unset_wait_cursor();
 }
@@ -112,29 +96,21 @@ static void do_hotlink_proc(Widget w, XtPointer client_data, XtPointer call_data
 /*
  * unlink sets
  */
-static void do_hotunlink_proc(Widget w, XtPointer client_data, XtPointer call_data)
+static void do_hotunlink_proc(void *client_data)
 {
-    XmString *s, cs;
-    int  cnt, setno;
-    char *cstr;
+    int  i, cnt, setno, *values;
 
     set_wait_cursor();
 
-	XtVaGetValues(hotlink_list_item, XmNselectedItemCount, &cnt,
-							  XmNselectedItems, &s,
-							  NULL);
+    cnt = GetListChoices(hotlink_list_item, &values);
     if( cnt ) {
-		for( ; cnt; cnt-- ) {
-			cs = XmStringCopy(s[cnt-1]);
-			if ((cstr = GetStringSimple(cs))) {
-				sscanf(cstr, "G%*d.S%d", &setno);
-				if (setno >= 0 && setno < number_of_sets(get_cg())) {
-					set_hotlink(get_cg(), setno, FALSE, NULL, 0);
-				}
+		for (i = 0; i < cnt; i++) {
+			setno = values[i];
+			if (setno >= 0 && setno < number_of_sets(get_cg())) {
+				set_hotlink(get_cg(), setno, FALSE, NULL, 0);
 			}
-			XmStringFree(cs);
-			XtFree(cstr);
 		}
+		xfree(values);
 		update_hotlinks();
 	}
     unset_wait_cursor();
@@ -145,23 +121,28 @@ static void do_hotunlink_proc(Widget w, XtPointer client_data, XtPointer call_da
  */
 void update_hotlinks(void)
 {
-    int j;
+    int j, n = 0;
     char buf[256];
-    XmString xms;
+    OptionItem *items;
 
     if (hotlink_frame != NULL) {
 		set_wait_cursor();
-		XmListDeleteAllItems(hotlink_list_item);
+		items = xmalloc((number_of_sets(get_cg()) + 1)*sizeof(OptionItem));
 		for (j = 0; j < number_of_sets(get_cg()); j++) {
 			if (is_hotlinked(get_cg(), j)) {
 				sprintf(buf, "G%d.S%d -> %s -> %s:%d", get_cg(), j, 
 					get_hotlink_src(get_cg(), j) == SOURCE_DISK ? "DISK" : "PIPE", 
 					get_hotlink_file(get_cg(), j), is_hotlinked(get_cg(),j) );
-				xms = XmStringCreateLocalized(buf);
-				XmListAddItemUnselected(hotlink_list_item, xms, 0);
-				XmStringFree(xms);
+				items[n].value = j;
+				items[n].label = copy_string(NULL, buf);
+				n++;
 			}
 		}
+		UpdateListChoice(hotlink_list_item, n, items);
+		for (j = 0; j < n; j++) {
+			xfree(items[j].label);
+		}
+		xfree(items);
 		unset_wait_cursor();
     }
 }
@@ -192,7 +173,6 @@ void do_hotupdate_proc(void *data)
 void create_hotlinks_popup(void *data)
 {
     static Widget top, dialog;
-    Arg args[3];
     set_wait_cursor();
     if (top == NULL) {
 	char *label1[5];
@@ -202,15 +182,12 @@ void create_hotlinks_popup(void *data)
 	label1[2] = "Unlink";
 	label1[3] = "Update";
 	label1[4] = "Close";
-	top = XmCreateDialogShell(app_shell, "Hot links", NULL, 0);
+	top = CreateDialogShell(app_shell, "Hot links");
 	handle_close(top);
-	dialog = XmCreateRowColumn(top, "dialog_rc", NULL, 0);
+	dialog = CreateDialogRC(top);
 
-	XtSetArg(args[0], XmNlistSizePolicy, XmRESIZE_IF_POSSIBLE);
-	XtSetArg(args[1], XmNvisibleItemCount, 5);
-	XtSetArg(args[2], XmNselectionPolicy, XmEXTENDED_SELECT );
-	hotlink_list_item = XmCreateScrolledList(dialog, "list", args, 3);
-	ManageChild(hotlink_list_item);
+	hotlink_list_item = CreateListChoice(dialog, "Hot links:",
+            LIST_TYPE_MULTIPLE, 5, 0, NULL);
 
         hotlink_set_item = CreateSetSelector(dialog, "Link set:",
                 SET_SELECT_ACTIVE,
@@ -227,16 +204,11 @@ void create_hotlinks_popup(void *data)
 	CreateSeparator(dialog);
 
 	CreateCommandButtons(dialog, 5, but1, label1);
-	XtAddCallback(but1[0], XmNactivateCallback, (XtCallbackProc) do_hotlink_proc,
-		      (XtPointer) NULL);
-	XtAddCallback(but1[1], XmNactivateCallback, (XtCallbackProc) create_hotfiles_popup,
-		      (XtPointer) NULL);
-	XtAddCallback(but1[2], XmNactivateCallback, (XtCallbackProc) do_hotunlink_proc,
-		      (XtPointer) NULL);
-	XtAddCallback(but1[3], XmNactivateCallback, (XtCallbackProc) do_hotupdate_proc,
-		      (XtPointer) NULL);
-	XtAddCallback(but1[4], XmNactivateCallback, (XtCallbackProc) destroy_dialog,
-		      (XtPointer) top);
+	AddButtonCB(but1[0], do_hotlink_proc, (void *) NULL);
+	AddButtonCB(but1[1], create_hotfiles_popup, (void *) NULL);
+	AddButtonCB(but1[2], do_hotunlink_proc, (void *) NULL);
+	AddButtonCB(but1[3], do_hotupdate_proc, (void *) NULL);
+	AddButtonCB(but1[4], destroy_dialog_cb, (void *) top);
 
 	ManageChild(dialog);
 	hotlink_frame = top;
@@ -261,7 +233,7 @@ static int do_hotlinkfile_proc(char *filename, void *data)
 /*
  * create file selection pop up to choose the file to hot link
  */
-void create_hotfiles_popup(Widget w, XtPointer client_data, XtPointer call_data)
+void create_hotfiles_popup(void *client_data)
 {
     static FSBStructure *fsb = NULL;
 

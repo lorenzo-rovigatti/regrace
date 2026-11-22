@@ -3375,3 +3375,225 @@ void TableCommitEdit(Widget w)
 {
     XbaeMatrixCommitEdit(w, False);
 }
+
+/* the full text of a text widget (newlines kept); free with xfree() */
+char *GetTextItemString(Widget w)
+{
+    char *s, *retval;
+    s = XmTextGetString(w);
+    retval = copy_string(NULL, s);
+    XtFree(s);
+    return retval;
+}
+
+/*
+ * Spreadsheets (on top of Xbae)
+ */
+typedef struct {
+    SS_GetProc get;
+    SS_SetProc set;
+    SS_LabelProc label;
+    void *data;
+} SSData;
+
+static SSData *ss_data(Widget w)
+{
+    SSData *d;
+    XtVaGetValues(w, XmNuserData, &d, NULL);
+    return d;
+}
+
+static void ss_draw_cb(Widget w, XtPointer client_data, XtPointer call_data)
+{
+    SSData *d = (SSData *) client_data;
+    XbaeMatrixDrawCellCallbackStruct *cs =
+    	    (XbaeMatrixDrawCellCallbackStruct *) call_data;
+
+    cs->type = XbaeString;
+    cs->string = d->get(d->data, cs->row, cs->column);
+}
+
+static void ss_leave_cb(Widget w, XtPointer client_data, XtPointer call_data)
+{
+    SSData *d = (SSData *) client_data;
+    XbaeMatrixLeaveCellCallbackStruct *cs =
+    	    (XbaeMatrixLeaveCellCallbackStruct *) call_data;
+
+    d->set(d->data, cs->row, cs->column, cs->value);
+}
+
+static void ss_label_cb(Widget w, XtPointer client_data, XtPointer call_data)
+{
+    SSData *d = (SSData *) client_data;
+    XbaeMatrixLabelActivateCallbackStruct *cbs =
+	(XbaeMatrixLabelActivateCallbackStruct *) call_data;
+
+    d->label(d->data, cbs->row_label ? TRUE:FALSE, cbs->row, cbs->column);
+}
+
+Widget CreateSpreadSheet(Widget parent, int nrows, int ncols,
+    int visrows, int viscols,
+    SS_GetProc get, SS_SetProc set, SS_LabelProc label, void *data)
+{
+    int i;
+    Widget mw;
+    SSData *d;
+    short *widths;
+    char **rowlabels, buf[32];
+    
+    d = xmalloc(sizeof(SSData));
+    d->get = get;
+    d->set = set;
+    d->label = label;
+    d->data = data;
+    
+    rowlabels = xmalloc(nrows*sizeof(char *));
+    for (i = 0; i < nrows; i++) {
+        sprintf(buf, "%d", i);
+    	rowlabels[i] = copy_string(NULL, buf);
+    }
+    widths = xmalloc(ncols*sizeof(short));
+    for (i = 0; i < ncols; i++) {
+        widths[i] = 12;
+    }
+
+    mw = XtVaCreateManagedWidget("mw",
+        xbaeMatrixWidgetClass, parent,
+        XmNrows, nrows,
+        XmNvisibleRows, visrows,
+        XmNbuttonLabels, True,
+        XmNrowLabels, rowlabels,
+        XmNcolumns, ncols,
+        XmNvisibleColumns, viscols,
+        XmNcolumnWidths, widths,
+        XmNallowColumnResize, True,
+        XmNgridType, XmGRID_CELL_SHADOW,
+        XmNcellShadowType, XmSHADOW_ETCHED_OUT,
+        XmNcellShadowThickness, 2,
+        XmNaltRowCount, 0,
+        XmNcalcCursorPosition, True,
+        XmNuserData, d,
+        NULL);
+
+    for (i = 0; i < nrows; i++) {
+	xfree(rowlabels[i]);
+    }
+    xfree(rowlabels);
+    xfree(widths);
+
+    XtAddCallback(mw, XmNdrawCellCallback, ss_draw_cb, d);	
+    XtAddCallback(mw, XmNleaveCellCallback, ss_leave_cb, d);
+    XtAddCallback(mw, XmNlabelActivateCallback, ss_label_cb, d);
+    
+    return mw;
+}
+
+void SpreadSheetGetSize(Widget w, int *nrows, int *ncols)
+{
+    XtVaGetValues(w, XmNrows, nrows, XmNcolumns, ncols, NULL);
+}
+
+void SpreadSheetRefresh(Widget w)
+{
+#if XbaeVersion < 45101
+    /* A bug in Xbae - the cell with focus on is NOT updated, so we do it */
+    /* Fixed in 4.51.01 */
+    int c_row, c_column;
+    SSData *d = ss_data(w);
+    XbaeMatrixGetCurrentCell(w, &c_row, &c_column);
+    XbaeMatrixSetCell(w, c_row, c_column, d->get(d->data, c_row, c_column));
+#endif
+    XbaeMatrixRefresh(w);
+}
+
+void SpreadSheetSetSize(Widget w, int nrows, int ncols,
+    char **collabels, short *widths, int *maxlengths)
+{
+    int i, nr, nc, delta_nr, delta_nc;
+    unsigned char *column_label_alignments;
+    short width;
+    char buf[32];
+    char **rowlabels;
+
+    SpreadSheetGetSize(w, &nr, &nc);
+    delta_nr = nrows - nr;
+    delta_nc = ncols - nc;
+    
+    if (delta_nr == 0 && delta_nc == 0) {
+        SpreadSheetRefresh(w);
+        return;
+    }
+    
+    if (delta_nr > 0) {
+        rowlabels = xmalloc(delta_nr*sizeof(char *));
+        for (i = 0; i < delta_nr; i++) {
+    	    sprintf(buf, "%d", nr + i);
+    	    rowlabels[i] = copy_string(NULL, buf);
+        }
+        XbaeMatrixAddRows(w, nr, NULL, rowlabels, NULL, delta_nr);
+        for (i = 0; i < delta_nr; i++) {
+	    xfree(rowlabels[i]);
+        }
+        xfree(rowlabels);
+    } else if (delta_nr < 0) {
+        XbaeMatrixDeleteRows(w, nrows, -delta_nr);
+    }
+    
+    if (delta_nc > 0) {
+        XbaeMatrixAddColumns(w, nc, NULL, NULL, widths + nc, maxlengths + nc, 
+            NULL, NULL, NULL, delta_nc);
+    } else if (delta_nc < 0) {
+        XbaeMatrixDeleteColumns(w, ncols, -delta_nc);
+    }
+		
+    /* Adjust row label width */
+    width = (short) ceil(log10(nrows)) + 1;
+    
+    column_label_alignments = xmalloc(ncols*SIZEOF_CHAR);
+    for (i = 0; i < ncols; i++) {
+        column_label_alignments[i] = XmALIGNMENT_CENTER;
+    }
+    XtVaSetValues(w,
+	XmNrowLabelWidth, width,
+        XmNvisibleColumns, ncols,
+        XmNcolumnMaxLengths, maxlengths,
+        XmNcolumnLabels, collabels,
+        XmNcolumnLabelAlignments, column_label_alignments,
+	NULL);
+    xfree(column_label_alignments);
+
+    if (delta_nc != 0) {
+        XtVaSetValues(w,
+            XmNcolumnWidths, widths,
+	    NULL);
+    }
+}
+
+void SpreadSheetGetCurrentCell(Widget w, int *row, int *col)
+{
+    XbaeMatrixGetCurrentCell(w, row, col);
+}
+
+int SpreadSheetIsRowSelected(Widget w, int row)
+{
+    return XbaeMatrixIsRowSelected(w, row) ? TRUE:FALSE;
+}
+
+void SpreadSheetSelectRow(Widget w, int row, int onoff)
+{
+    if (onoff) {
+        XbaeMatrixSelectRow(w, row);
+    } else {
+        XbaeMatrixDeselectRow(w, row);
+    }
+}
+
+void SpreadSheetDeselectAll(Widget w)
+{
+    XbaeMatrixDeselectAll(w);
+}
+
+void SpreadSheetCommitEdit(Widget w)
+{
+    XbaeMatrixCommitEdit(w, False);
+}

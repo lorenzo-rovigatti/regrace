@@ -42,14 +42,6 @@
 #  include <sys/param.h>
 #endif
 
-#include <Xm/Xm.h>
-#include <Xm/DialogS.h>
-#include <Xm/Form.h>
-#include <Xm/PushB.h>
-#include <Xm/ToggleB.h>
-#include <Xm/RowColumn.h>
-#include <Xm/List.h>
-#include <Xm/Text.h>
 
 #include "globals.h"
 #include "graphs.h"
@@ -64,7 +56,7 @@ static int save_proc(char *filename, void *data);
 
 static int read_sets_proc(char *filename, void *data);
 static void set_load_proc(int value, void *data);
-static void set_src_proc(Widget w, XtPointer client_data, XtPointer call_data);
+static void set_src_proc(int value, void *data);
 static int write_sets_proc(char *filename, void *data);
 
 static int read_params_proc(char *filename, void *data);
@@ -95,7 +87,7 @@ void create_saveproject_popup(void)
         fsb = CreateFileSelectionBox(app_shell, "Save project");
 
 	fr = CreateFrame(fsb->rc, NULL);
-	rc = XmCreateRowColumn(fr, "rc", NULL, 0);
+	rc = CreateVContainer(fr);
 	save_gui.descr_item  = CreateScrollTextItem2(rc, 5, "Project description:");
 	save_gui.format_item = CreateTextItem2(rc, 15, "Data format:");
         ManageChild(rc);
@@ -119,9 +111,9 @@ static int save_proc(char *filename, void *data)
     saveGUI *gui = (saveGUI *) data;
     
     strcpy(sformat, xv_getstr(gui->format_item));
-    s = XmTextGetString(gui->descr_item);
+    s = GetTextItemString(gui->descr_item);
     set_project_description(s);
-    XtFree(s);
+    xfree(s);
     if (save_project(filename) == RETURN_SUCCESS) {
         return TRUE;
     } else {
@@ -174,10 +166,10 @@ void create_file_popup(void *data)
     set_wait_cursor();
 
     if (rdata_dialog == NULL) {
-        int i;
-        Widget lab, rc, rc2, fr, rb, w[2];
+        Widget rc, rc2, fr;
         rdataGUI *gui;
         OptionItem option_items[3];
+        OptionStructure *src_item;
         
         gui = xmalloc(sizeof(rdataGUI));
         
@@ -185,13 +177,12 @@ void create_file_popup(void *data)
 	AddFileSelectionBoxCB(rdata_dialog, read_sets_proc, (void *) gui);
 
 	fr = CreateFrame(rdata_dialog->rc, NULL);
-	rc = XmCreateRowColumn(fr, "rc", NULL, 0);
+	rc = CreateVContainer(fr);
 
 	gui->graph_item = CreateGraphChoice(rc,
             "Read to graph:", LIST_TYPE_SINGLE);
 
-	rc2 = XmCreateRowColumn(rc, "rc2", NULL, 0);
-	XtVaSetValues(rc2, XmNorientation, XmHORIZONTAL, NULL);
+	rc2 = CreateHContainer(rc);
  
 	option_items[0].value = LOAD_SINGLE;
 	option_items[0].label = "Single set";
@@ -204,22 +195,13 @@ void create_file_popup(void *data)
 	gui->ftype_item = CreateSetTypeChoice(rc2, "Set type:");
 	ManageChild(rc2);
 
-	rc2 = XmCreateRowColumn(rc, "rc2", NULL, 0);
-	XtVaSetValues(rc2, XmNorientation, XmHORIZONTAL, NULL);
-	lab = CreateLabel(rc2, "Data source:");
-	rb = XmCreateRadioBox(rc2, "radio_box_2", NULL, 0);
-	XtVaSetValues(rb, XmNorientation, XmHORIZONTAL, NULL);
-	w[0] = CreateToggleButton(rb, "Disk");
-	w[1] = CreateToggleButton(rb, "Pipe");
-	for (i = 0; i < 2; i++) {
-	    XtAddCallback(w[i],
-                XmNvalueChangedCallback, set_src_proc, (XtPointer) i);
-	}
-	ManageChild(rb);
-	ManageChild(w[0]);
-	ManageChild(w[1]);
-	SetToggleButtonState(w[0], TRUE);
-	ManageChild(rc2);
+	option_items[0].value = SOURCE_DISK;
+	option_items[0].label = "Disk";
+	option_items[1].value = SOURCE_PIPE;
+	option_items[1].label = "Pipe";
+	src_item = CreateOptionChoice(rc, "Data source:", 1, 2, option_items);
+	SetOptionChoice(src_item, cursource);
+	AddOptionChoiceCB(src_item, set_src_proc, NULL);
 
 	gui->auto_item = CreateASChoice(rc, "Autoscale on read:");
 
@@ -263,14 +245,9 @@ static int read_sets_proc(char *filename, void *data)
     return FALSE;
 }
 
-static void set_src_proc(Widget w, XtPointer client_data, XtPointer call_data)
+static void set_src_proc(int value, void *data)
 {
-    int which = (int) client_data;
-    XmToggleButtonCallbackStruct *state = (XmToggleButtonCallbackStruct *) call_data;
-
-    if (state->set) {
-        cursource = which;
-    }
+    cursource = value;
 }
 
 static void set_load_proc(int value, void *data)
@@ -307,7 +284,7 @@ void create_write_popup(void *data)
 	AddFileSelectionBoxCB(fsb, write_sets_proc, (void *) gui);
 	
 	fr = CreateFrame(fsb->rc, NULL);
-	rc = XmCreateRowColumn(fr, "rc", NULL, 0);
+	rc = CreateVContainer(fr);
         gui->sel = CreateSetChoice(rc,
             "Write set(s):", LIST_TYPE_MULTIPLE, TRUE);
 	gui->format_item = CreateTextItem2(rc, 15, "Format: ");
@@ -447,27 +424,41 @@ static int write_params_proc(char *filename, void *data)
 
 static Widget netcdf_frame = (Widget) NULL;
 
-static Widget netcdf_listx_item;
-static Widget netcdf_listy_item;
+static ListStructure *netcdf_listx_item;
+static ListStructure *netcdf_listy_item;
 static Widget netcdf_file_item;
 
-void create_netcdffiles_popup(Widget w, XtPointer client_data, XtPointer call_data);
+/* the names in the lists; 0 is "INDEX" (only in the X list) */
+static char **netcdf_names = NULL;
+static int netcdf_nnames = 0;
 
-static void do_netcdfquery_proc(Widget w, XtPointer client_data, XtPointer call_data);
+static int get_netcdf_selection(ListStructure *listp, char *buf)
+{
+    int value;
+    
+    if (GetSingleListChoice(listp, &value) == RETURN_SUCCESS &&
+        value >= 0 && value < netcdf_nnames) {
+        strcpy(buf, netcdf_names[value]);
+        return TRUE;
+    } else {
+        return FALSE;
+    }
+}
+
+void create_netcdffiles_popup(void *client_data);
+
+static void do_netcdfquery_proc(void *client_data);
 
 void update_netcdfs(void);
 
 int getnetcdfvars(void);
 
-static void do_netcdf_proc(Widget w, XtPointer client_data, XtPointer call_data)
+static void do_netcdf_proc(void *client_data)
 {
     int setno;
     char fname[256];
     char xvar[256], yvar[256];
-    XmString *s, cs;
-    int *pos_list;
-    int j, pos_cnt, cnt, retval;
-    char *cstr;
+    int retval;
 
     set_wait_cursor();
 
@@ -476,34 +467,13 @@ static void do_netcdf_proc(Widget w, XtPointer client_data, XtPointer call_data)
  */
     setno = -1;
     strcpy(fname, xv_getstr(netcdf_file_item));
-    if (XmListGetSelectedPos(netcdf_listx_item, &pos_list, &pos_cnt)) {
-	XtVaGetValues(netcdf_listx_item,
-		      XmNselectedItemCount, &cnt,
-		      XmNselectedItems, &s,
-		      NULL);
-	cs = XmStringCopy(*s);
-	if ((cstr = GetStringSimple(cs))) {
-	    strcpy(xvar, cstr);
-	    XtFree(cstr);
-	}
-	XmStringFree(cs);
+    if (get_netcdf_selection(netcdf_listx_item, xvar)) {
     } else {
 	errmsg("Need to select X, either variable name or INDEX");
 	unset_wait_cursor();
 	return;
     }
-    if (XmListGetSelectedPos(netcdf_listy_item, &pos_list, &pos_cnt)) {
-	j = pos_list[0];
-	XtVaGetValues(netcdf_listy_item,
-		      XmNselectedItemCount, &cnt,
-		      XmNselectedItems, &s,
-		      NULL);
-	cs = XmStringCopy(*s);
-	if ((cstr = GetStringSimple(cs))) {
-	    strcpy(yvar, cstr);
-	    XtFree(cstr);
-	}
-	XmStringFree(cs);
+    if (get_netcdf_selection(netcdf_listy_item, yvar)) {
     } else {
 	errmsg("Need to select Y");
 	unset_wait_cursor();
@@ -520,11 +490,24 @@ static void do_netcdf_proc(Widget w, XtPointer client_data, XtPointer call_data)
     unset_wait_cursor();
 }
 
+static void update_netcdf_lists(void)
+{
+    int i;
+    OptionItem *items = xmalloc(netcdf_nnames*sizeof(OptionItem));
+    
+    for (i = 0; i < netcdf_nnames; i++) {
+        items[i].value = i;
+        items[i].label = netcdf_names[i];
+    }
+    UpdateListChoice(netcdf_listx_item, netcdf_nnames, items);
+    UpdateListChoice(netcdf_listy_item, netcdf_nnames - 1, items + 1);
+    xfree(items);
+}
+
 void update_netcdfs(void)
 {
     int i;
     char buf[256], fname[512];
-    XmString xms;
     int cdfid;			/* netCDF id */
     int ndims, nvars, ngatts, recdim;
     int var_id;
@@ -539,11 +522,14 @@ void update_netcdfs(void)
     if (netcdf_frame != NULL) {
 	strcpy(fname, xv_getstr(netcdf_file_item));
 	set_wait_cursor();
-	XmListDeleteAllItems(netcdf_listx_item);
-	XmListDeleteAllItems(netcdf_listy_item);
-	xms = XmStringCreateLocalized("INDEX");
-	XmListAddItemUnselected(netcdf_listx_item, xms, 0);
-	XmStringFree(xms);
+	for (i = 0; i < netcdf_nnames; i++) {
+	    xfree(netcdf_names[i]);
+	}
+	netcdf_nnames = 1;
+	netcdf_names = xrealloc(netcdf_names, sizeof(char *));
+	netcdf_names[0] = copy_string(NULL, "INDEX");
+	UpdateListChoice(netcdf_listy_item, 0, NULL);
+	update_netcdf_lists();
 
 	if (strlen(fname) < 2) {
 	    unset_wait_cursor();
@@ -571,18 +557,17 @@ void update_netcdfs(void)
 	    }
 	    ncdiminq(cdfid, dim[0], (char *) NULL, &len);
 	    sprintf(buf, "%s", varname);
-	    xms = XmStringCreateLocalized(buf);
-	    XmListAddItemUnselected(netcdf_listx_item, xms, 0);
-	    XmListAddItemUnselected(netcdf_listy_item, xms, 0);
-	    XmStringFree(xms);
+	    netcdf_names = xrealloc(netcdf_names, (netcdf_nnames + 1)*sizeof(char *));
+	    netcdf_names[netcdf_nnames++] = copy_string(NULL, buf);
 	}
 	ncclose(cdfid);
+	update_netcdf_lists();
 	
 	unset_wait_cursor();
     }
 }
 
-static void do_netcdfupdate_proc(Widget w, XtPointer client_data, XtPointer call_data)
+static void do_netcdfupdate_proc(void *client_data)
 {
     set_wait_cursor();
     update_netcdfs();
@@ -592,8 +577,6 @@ static void do_netcdfupdate_proc(Widget w, XtPointer client_data, XtPointer call
 void create_netcdfs_popup(void *data)
 {
     static Widget top, dialog;
-    Widget lab;
-    Arg args[3];
 
     set_wait_cursor();
     if (top == NULL) {
@@ -605,36 +588,25 @@ void create_netcdfs_popup(void *data)
 	label1[2] = "Update";
 	label1[3] = "Query";
 	label1[4] = "Close";
-	top = XmCreateDialogShell(app_shell, "netCDF", NULL, 0);
+	top = CreateDialogShell(app_shell, "netCDF");
 	handle_close(top);
-	dialog = XmCreateRowColumn(top, "dialog_rc", NULL, 0);
+	dialog = CreateDialogRC(top);
 
-	XtSetArg(args[0], XmNlistSizePolicy, XmRESIZE_IF_POSSIBLE);
-	XtSetArg(args[1], XmNvisibleItemCount, 5);
-
-	lab = CreateLabel(dialog, "Select set X:");
-	netcdf_listx_item = XmCreateScrolledList(dialog, "list", args, 2);
-	ManageChild(netcdf_listx_item);
-
-	lab = CreateLabel(dialog, "Select set Y:");
-	netcdf_listy_item = XmCreateScrolledList(dialog, "list", args, 2);
-	ManageChild(netcdf_listy_item);
+	netcdf_listx_item = CreateListChoice(dialog, "Select set X:",
+            LIST_TYPE_SINGLE, 5, 0, NULL);
+	netcdf_listy_item = CreateListChoice(dialog, "Select set Y:",
+            LIST_TYPE_SINGLE, 5, 0, NULL);
 
 	netcdf_file_item = CreateTextItem2(dialog, 30, "netCDF file:");
 
 	CreateSeparator(dialog);
 
 	CreateCommandButtons(dialog, 5, but1, label1);
-	XtAddCallback(but1[0], XmNactivateCallback, (XtCallbackProc) do_netcdf_proc,
-		      (XtPointer) NULL);
-	XtAddCallback(but1[1], XmNactivateCallback, (XtCallbackProc) create_netcdffiles_popup,
-		      (XtPointer) NULL);
-	XtAddCallback(but1[2], XmNactivateCallback, (XtCallbackProc) do_netcdfupdate_proc,
-		      (XtPointer) NULL);
-	XtAddCallback(but1[3], XmNactivateCallback, (XtCallbackProc) do_netcdfquery_proc,
-		      (XtPointer) NULL);
-	XtAddCallback(but1[4], XmNactivateCallback, (XtCallbackProc) destroy_dialog,
-		      (XtPointer) top);
+	AddButtonCB(but1[0], do_netcdf_proc, (void *) NULL);
+	AddButtonCB(but1[1], create_netcdffiles_popup, (void *) NULL);
+	AddButtonCB(but1[2], do_netcdfupdate_proc, (void *) NULL);
+	AddButtonCB(but1[3], do_netcdfquery_proc, (void *) NULL);
+	AddButtonCB(but1[4], destroy_dialog_cb, (void *) top);
 
 	ManageChild(dialog);
 	netcdf_frame = top;
@@ -655,7 +627,7 @@ static int do_netcdffile_proc(char *filename, void *data)
     return TRUE;
 }
 
-void create_netcdffiles_popup(Widget w, XtPointer client_data, XtPointer call_data)
+void create_netcdffiles_popup(void *client_data)
 {
     static FSBStructure *fsb = NULL;
 
@@ -693,14 +665,11 @@ char *getcdf_type(nc_type datatype)
     }
 }
 
-static void do_netcdfquery_proc(Widget w, XtPointer client_data, XtPointer call_data)
+static void do_netcdfquery_proc(void *client_data)
 {
     char xvar[256], yvar[256];
     char buf[256], fname[512];
-    XmString *s, cs;
-    int *pos_list;
-    int i, pos_cnt, cnt;
-    char *cstr;
+    int i;
 
     int cdfid;			/* netCDF id */
     nc_type datatype = 0;
@@ -729,32 +698,12 @@ static void do_netcdfquery_proc(Widget w, XtPointer client_data, XtPointer call_
 	unset_wait_cursor();
 	return;
     }
-    if (XmListGetSelectedPos(netcdf_listx_item, &pos_list, &pos_cnt)) {
-	XtVaGetValues(netcdf_listx_item,
-		      XmNselectedItemCount, &cnt,
-		      XmNselectedItems, &s,
-		      NULL);
-	cs = XmStringCopy(*s);
-	if ((cstr = GetStringSimple(cs))) {
-	    strcpy(xvar, cstr);
-	    XtFree(cstr);
-	}
-	XmStringFree(cs);
+    if (get_netcdf_selection(netcdf_listx_item, xvar)) {
     } else {
 	errmsg("Need to select X, either variable name or INDEX");
 	goto out1;
     }
-    if (XmListGetSelectedPos(netcdf_listy_item, &pos_list, &pos_cnt)) {
-	XtVaGetValues(netcdf_listy_item,
-		      XmNselectedItemCount, &cnt,
-		      XmNselectedItems, &s,
-		      NULL);
-	cs = XmStringCopy(*s);
-	if ((cstr = GetStringSimple(cs))) {
-	    strcpy(yvar, cstr);
-	    XtFree(cstr);
-	}
-	XmStringFree(cs);
+    if (get_netcdf_selection(netcdf_listy_item, yvar)) {
     } else {
 	errmsg("Need to select Y");
 	goto out1;

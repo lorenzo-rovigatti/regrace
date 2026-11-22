@@ -2458,13 +2458,20 @@ static void list_cb(Fl_Widget *w, void *data)
     GW *g = (GW *) data;
     Fl_Browser *b = (Fl_Browser *) w;
 
-    if (Fl::event() == FL_PUSH && Fl::event_clicks() > 0 &&
-        Fl::event_button() == FL_LEFT_MOUSE) {
+    /* double click (on release) or Enter: the default action */
+    if ((Fl::event() == FL_RELEASE && Fl::event_clicks() > 0 &&
+         Fl::event_button() == FL_LEFT_MOUSE) ||
+        (Fl::event() == FL_KEYBOARD && (Fl::event_key() == FL_Enter ||
+         Fl::event_key() == FL_KP_Enter))) {
         int line = b->value();
         Fl::event_clicks(0);
         if (line > 0 && g->default_proc) {
             g->default_proc(g, line - 1);
         }
+        return;
+    }
+    if (Fl::event() == FL_RELEASE) {
+        /* the selection was already reported on push/drag */
         return;
     }
     call_list_cbs(g);
@@ -2491,7 +2498,7 @@ ListStructure *CreateListChoice(Widget parent, char *labelstr, int type,
     g->rows = nvisible;
     g->owner = retval;
     b->callback(list_cb, g);
-    b->when(FL_WHEN_CHANGED | FL_WHEN_NOT_CHANGED);
+    b->when(FL_WHEN_CHANGED | FL_WHEN_ENTER_KEY);
 
     retval->list = g;
     retval->values = NULL;
@@ -3618,11 +3625,11 @@ static void fsb_reload(FSBData *d)
     }
     b->filter(d->pattern.empty() ? "*" : d->pattern.c_str());
     b->load(d->dir.c_str());
-    /* don't show "./" */
-    for (int i = 1; i <= b->size(); i++) {
-        if (b->text(i) && strcmp(b->text(i), "./") == 0) {
+    /* don't show "./" and hidden files (as the Motif FSB) */
+    for (int i = b->size(); i >= 1; i--) {
+        const char *t = b->text(i);
+        if (t && t[0] == '.' && strcmp(t, "../") != 0) {
             b->remove(i);
-            break;
         }
     }
     f = d->dir + (d->pattern.empty() ? "*" : d->pattern);
@@ -4275,6 +4282,350 @@ void TableSetNumRows(Widget w, int nrows, char **rowlabels)
 void TableCommitEdit(Widget w)
 {
     GTable *t = table_of(w);
+    if (t) {
+        t->done_edit();
+    }
+}
+
+char *GetTextItemString(Widget w)
+{
+    std::string s = get_text(w);
+    return copy_string(NULL, (char *) s.c_str());
+}
+
+/* ------------------------------------------------------------------ */
+/* spreadsheets: cells provided by callbacks */
+
+class GSheet : public Fl_Table {
+public:
+    SS_GetProc get;
+    SS_SetProc set;
+    SS_LabelProc label;
+    void *data;
+    std::vector<std::string> collabels;
+    std::vector<char> selected;
+    Fl_Input *editor;
+    int erow, ecol;         /* cell being edited */
+    int crow, ccol;         /* current cell */
+    int visrows, viscols;
+    
+    GSheet(int nr, int nc, int vr, int vc);
+    void draw_cell(TableContext context, int R, int C, int X, int Y,
+        int W, int H);
+    void start_edit(int R, int C);
+    void done_edit(void);
+    int handle(int event);
+    void resize(int X, int Y, int W, int H) {
+        done_edit();
+        Fl_Table::resize(X, Y, W, H);
+    }
+};
+
+static void sheet_editor_cb(Fl_Widget *w, void *data)
+{
+    GSheet *t = (GSheet *) data;
+    if (Fl::event() == FL_KEYBOARD) {
+        int key = Fl::event_key();
+        int R = t->erow, C = t->ecol;
+        if (key == FL_Enter || key == FL_KP_Enter || key == FL_Down) {
+            t->done_edit();
+            if (R + 1 < t->rows()) {
+                t->start_edit(R + 1, C);
+            }
+        } else if (key == FL_Up) {
+            t->done_edit();
+            if (R > 0) {
+                t->start_edit(R - 1, C);
+            }
+        } else if (key == FL_Tab) {
+            t->done_edit();
+            if (C + 1 < t->cols()) {
+                t->start_edit(R, C + 1);
+            } else if (R + 1 < t->rows()) {
+                t->start_edit(R + 1, 0);
+            }
+        }
+    }
+}
+
+static void sheet_cb(Fl_Widget *w, void *)
+{
+    GSheet *t = (GSheet *) w;
+    int R = t->callback_row(), C = t->callback_col();
+    
+    if (Fl::event() != FL_PUSH) {
+        return;
+    }
+    switch (t->callback_context()) {
+    case Fl_Table::CONTEXT_CELL:
+        t->start_edit(R, C);
+        break;
+    case Fl_Table::CONTEXT_ROW_HEADER:
+        t->done_edit();
+        if (t->label) {
+            t->label(t->data, TRUE, R, -1);
+        }
+        break;
+    case Fl_Table::CONTEXT_COL_HEADER:
+        t->done_edit();
+        if (t->label) {
+            t->label(t->data, FALSE, -1, C);
+        }
+        break;
+    default:
+        break;
+    }
+}
+
+GSheet::GSheet(int nr, int nc, int vr, int vc) :
+    Fl_Table(0, 0, 10, 10), get(NULL), set(NULL), label(NULL), data(NULL),
+    erow(-1), ecol(-1), crow(0), ccol(0), visrows(vr), viscols(vc)
+{
+    end();
+    begin();
+    editor = new Fl_Input(0, 0, 10, 10);
+    editor->hide();
+    editor->box(FL_FLAT_BOX);
+    editor->callback(sheet_editor_cb, this);
+    editor->when(FL_WHEN_ENTER_KEY_ALWAYS | FL_WHEN_CHANGED);
+    end();
+    row_header(1);
+    col_header(1);
+    row_height_all(text_h() + 6);
+    col_header_height(text_h() + 6);
+    row_header_width(5*char_width() + 8);
+    col_width_all(12*char_width() + 8);
+    color(FL_BACKGROUND2_COLOR);
+    callback(sheet_cb);
+    when(FL_WHEN_CHANGED | FL_WHEN_RELEASE);
+    rows(nr);
+    cols(nc);
+    selected.resize(nr, 0);
+    collabels.resize(nc);
+}
+
+void GSheet::start_edit(int R, int C)
+{
+    int X, Y, W, H;
+    done_edit();
+    if (R < 0 || C < 0 || R >= rows() || C >= cols()) {
+        return;
+    }
+    erow = crow = R;
+    ecol = ccol = C;
+    find_cell(CONTEXT_CELL, R, C, X, Y, W, H);
+    if (W <= 0 || H <= 0) {
+        /* not visible: scroll to it first */
+        row_position(R);
+        find_cell(CONTEXT_CELL, R, C, X, Y, W, H);
+    }
+    editor->resize(X, Y, W, H);
+    editor->value(get ? get(data, R, C) : "");
+    editor->insert_position(0, editor->size());
+    editor->show();
+    editor->take_focus();
+    redraw();
+}
+
+void GSheet::done_edit(void)
+{
+    if (erow >= 0) {
+        int R = erow, C = ecol;
+        std::string v = editor->value();
+        erow = ecol = -1;
+        editor->hide();
+        if (set) {
+            set(data, R, C, (char *) v.c_str());
+        }
+        redraw();
+    }
+}
+
+int GSheet::handle(int event)
+{
+    if (event == FL_PUSH && erow >= 0 && !Fl::event_inside(editor)) {
+        done_edit();
+    }
+    return Fl_Table::handle(event);
+}
+
+void GSheet::draw_cell(TableContext context, int R, int C, int X, int Y,
+    int W, int H)
+{
+    char buf[32];
+    switch (context) {
+    case CONTEXT_STARTPAGE:
+        fl_font(FL_HELVETICA, FL_NORMAL_SIZE);
+        return;
+    case CONTEXT_COL_HEADER:
+        fl_push_clip(X, Y, W, H);
+        fl_draw_box(FL_THIN_UP_BOX, X, Y, W, H, FL_BACKGROUND_COLOR);
+        fl_color(FL_FOREGROUND_COLOR);
+        if (C < (int) collabels.size()) {
+            fl_draw(collabels[C].c_str(), X, Y, W, H, FL_ALIGN_CENTER);
+        }
+        fl_pop_clip();
+        return;
+    case CONTEXT_ROW_HEADER:
+        fl_push_clip(X, Y, W, H);
+        fl_draw_box(FL_THIN_UP_BOX, X, Y, W, H,
+            (R < (int) selected.size() && selected[R]) ?
+                FL_SELECTION_COLOR : FL_BACKGROUND_COLOR);
+        fl_color((R < (int) selected.size() && selected[R]) ?
+            fl_contrast(FL_FOREGROUND_COLOR, FL_SELECTION_COLOR) :
+            FL_FOREGROUND_COLOR);
+        sprintf(buf, "%d", R);
+        fl_draw(buf, X, Y, W, H, FL_ALIGN_CENTER);
+        fl_pop_clip();
+        return;
+    case CONTEXT_CELL:
+        if (R == erow && C == ecol) {
+            return;
+        }
+        fl_push_clip(X, Y, W, H);
+        if (R < (int) selected.size() && selected[R]) {
+            fl_color(fl_color_average(FL_SELECTION_COLOR,
+                FL_BACKGROUND2_COLOR, 0.35));
+        } else {
+            fl_color(FL_BACKGROUND2_COLOR);
+        }
+        fl_rectf(X, Y, W, H);
+        fl_color(FL_FOREGROUND_COLOR);
+        if (get) {
+            const char *s = get(data, R, C);
+            fl_draw(s ? s:"", X + 3, Y, W - 6, H, FL_ALIGN_LEFT);
+        }
+        fl_color(FL_LIGHT2);
+        fl_rect(X, Y, W, H);
+        fl_pop_clip();
+        return;
+    default:
+        return;
+    }
+}
+
+static GSheet *sheet_of(Widget w)
+{
+    return (w && w->w) ? dynamic_cast<GSheet *>(w->w) : NULL;
+}
+
+static void sheet_update_size(GW *g)
+{
+    GSheet *t = (GSheet *) g->w;
+    int i, W = t->row_header_width() + Fl::scrollbar_size() + 4;
+    for (i = 0; i < MAX2(MIN2(t->viscols, t->cols()), 1); i++) {
+        W += (i < t->cols()) ? t->col_width(i) : 12*char_width();
+    }
+    g->custom_w = W;
+    g->custom_h = t->col_header_height() +
+        MAX2(t->visrows, 1)*(text_h() + 6) + Fl::scrollbar_size() + 4;
+    schedule_layout(g);
+}
+
+Widget CreateSpreadSheet(Widget parent, int nrows, int ncols,
+    int visrows, int viscols,
+    SS_GetProc get, SS_SetProc set, SS_LabelProc label, void *data)
+{
+    GSheet *t;
+    GW *g;
+    
+    begin_in(parent);
+    t = new GSheet(nrows, ncols, visrows, viscols);
+    end_in();
+    t->get = get;
+    t->set = set;
+    t->label = label;
+    t->data = data;
+    g = new_leaf(parent, LT_CUSTOM, t);
+    t->callback(sheet_cb);
+    g->custom_hexp = true;
+    g->custom_vexp = true;
+    sheet_update_size(g);
+    
+    return g;
+}
+
+void SpreadSheetGetSize(Widget w, int *nrows, int *ncols)
+{
+    GSheet *t = sheet_of(w);
+    *nrows = t ? t->rows() : 0;
+    *ncols = t ? t->cols() : 0;
+}
+
+void SpreadSheetSetSize(Widget w, int nrows, int ncols,
+    char **collabels, short *widths, int *maxlengths)
+{
+    GSheet *t = sheet_of(w);
+    int i;
+    char buf[32];
+    
+    if (t == NULL) {
+        return;
+    }
+    if (t->erow >= nrows || t->ecol >= ncols) {
+        t->done_edit();
+    }
+    t->rows(nrows);
+    t->cols(ncols);
+    t->selected.resize(nrows, 0);
+    t->collabels.resize(ncols);
+    for (i = 0; i < ncols; i++) {
+        t->collabels[i] = collabels[i] ? collabels[i] : "";
+        t->col_width(i, widths[i]*char_width() + 8);
+    }
+    sprintf(buf, "%d", nrows);
+    t->row_header_width((strlen(buf) + 1)*char_width() + 8);
+    t->viscols = ncols;
+    sheet_update_size(w);
+    t->redraw();
+}
+
+void SpreadSheetRefresh(Widget w)
+{
+    GSheet *t = sheet_of(w);
+    if (t) {
+        if (t->erow >= 0 && t->get) {
+            t->editor->value(t->get(t->data, t->erow, t->ecol));
+        }
+        t->redraw();
+    }
+}
+
+void SpreadSheetGetCurrentCell(Widget w, int *row, int *col)
+{
+    GSheet *t = sheet_of(w);
+    *row = t ? t->crow : 0;
+    *col = t ? t->ccol : 0;
+}
+
+int SpreadSheetIsRowSelected(Widget w, int row)
+{
+    GSheet *t = sheet_of(w);
+    return (t && row >= 0 && row < (int) t->selected.size() &&
+        t->selected[row]) ? TRUE:FALSE;
+}
+
+void SpreadSheetSelectRow(Widget w, int row, int onoff)
+{
+    GSheet *t = sheet_of(w);
+    if (t && row >= 0 && row < (int) t->selected.size()) {
+        t->selected[row] = onoff ? 1:0;
+        t->redraw();
+    }
+}
+
+void SpreadSheetDeselectAll(Widget w)
+{
+    GSheet *t = sheet_of(w);
+    if (t) {
+        std::fill(t->selected.begin(), t->selected.end(), 0);
+        t->redraw();
+    }
+}
+
+void SpreadSheetCommitEdit(Widget w)
+{
+    GSheet *t = sheet_of(w);
     if (t) {
         t->done_edit();
     }

@@ -39,9 +39,6 @@
 #include <stdlib.h>
 #include <sys/types.h>
 
-#include <Xm/Xm.h>
-#include <Xm/DialogS.h>
-#include <Xm/RowColumn.h>
 
 #include "globals.h"
 #include "utils.h"
@@ -94,7 +91,7 @@ static void define_strings_popup(void *data);
 static void define_lines_popup(void *data);
 static void define_boxes_popup(void *data);
 
-void ellip_def_proc(Widget w, XtPointer client_data, XtPointer call_data)
+void ellip_def_proc(void *client_data)
 {
     ellipse_color = GetOptionChoice(ellip_color_item);
     ellipse_loctype = GetChoice(ellip_loc_item) ? COORD_VIEW : COORD_WORLD;
@@ -116,7 +113,7 @@ void update_ellip(void)
     }
 }
 
-void boxes_def_proc(Widget w, XtPointer client_data, XtPointer call_data)
+void boxes_def_proc(void *client_data)
 {
     box_color = GetOptionChoice(boxes_color_item);
     box_loctype = GetChoice(boxes_loc_item) ? COORD_VIEW : COORD_WORLD;
@@ -126,7 +123,7 @@ void boxes_def_proc(Widget w, XtPointer client_data, XtPointer call_data)
     box_fillpat = GetOptionChoice(boxes_fillpat_item);
 }
 
-void lines_def_proc(Widget w, XtPointer client_data, XtPointer call_data)
+void lines_def_proc(void *client_data)
 {
     line_asize = GetSpinChoice(lines_asize_item);
     line_color = GetOptionChoice(lines_color_item);
@@ -178,7 +175,7 @@ void update_boxes(void)
     }
 }
 
-void define_string_defaults(Widget w, XtPointer client_data, XtPointer call_data)
+void define_string_defaults(void *client_data)
 {
     if (strings_frame) {
 	string_font = GetOptionChoice(strings_font_item);
@@ -233,15 +230,15 @@ static void clear_objects_cb(void *data)
 void define_objects_popup(void *data)
 {
     Widget wbut;
-    Widget panel, rc;
+    Widget dialog, panel, rc;
     set_wait_cursor();
     if (objects_frame == NULL) {
-	objects_frame = XmCreateDialogShell(app_shell, "Objects", NULL, 0);
+	objects_frame = CreateDialogShell(app_shell, "Objects");
 	handle_close(objects_frame);
-	panel = XmCreateRowColumn(objects_frame, "ticks_rc", NULL, 0);
-        XtVaSetValues(panel, XmNorientation, XmHORIZONTAL, NULL);
+	dialog = CreateDialogRC(objects_frame);
+        panel = CreateHContainer(dialog);
 
-        rc = XmCreateRowColumn(panel, "rc", NULL, 0);
+        rc = CreateVContainer(panel);
 	wbut = CreateButton(rc, "Text");
         AddButtonCB(wbut, set_actioncb, (void *) STR_LOC);
 	wbut = CreateButton(rc, "Text props...");
@@ -260,7 +257,7 @@ void define_objects_popup(void *data)
         AddButtonCB(wbut, define_ellip_popup, NULL);
 	ManageChild(rc);
 
-        rc = XmCreateRowColumn(panel, "rc", NULL, 0);
+        rc = CreateVContainer(panel);
 	wbut = CreateButton(rc, "Edit object");
         AddButtonCB(wbut, set_actioncb, (void *) EDIT_OBJECT);
 	wbut = CreateButton(rc, "Move object");
@@ -281,7 +278,7 @@ void define_objects_popup(void *data)
 	AddButtonCB(wbut, close_objects_cb, objects_frame);
 	ManageChild(rc);
 
-	ManageChild(panel);
+	ManageChild(dialog);
     }
     RaiseWindow(objects_frame);
     unset_wait_cursor();
@@ -298,11 +295,11 @@ static void define_ellip_popup(void *data)
 	char *label1[2];
 	label1[0] = "Accept";
 	label1[1] = "Close";
-	ellip_frame = XmCreateDialogShell(app_shell, "Ellipses", NULL, 0);
+	ellip_frame = CreateDialogShell(app_shell, "Ellipses");
 	handle_close(ellip_frame);
-	panel = XmCreateRowColumn(ellip_frame, "ellip_rc", NULL, 0);
+	panel = CreateDialogRC(ellip_frame);
 
-        rc = XtVaCreateWidget("rc", xmRowColumnWidgetClass, panel, NULL);
+        rc = CreateVContainer(panel);
 
 	ellip_color_item = CreateColorChoice(rc, "Color: ");
 
@@ -322,10 +319,8 @@ static void define_ellip_popup(void *data)
 	CreateSeparator(panel);
 
 	CreateCommandButtons(panel, 2, buts, label1);
-	XtAddCallback(buts[0], XmNactivateCallback,
-		      ellip_def_proc, (XtPointer) 0);
-	XtAddCallback(buts[1], XmNactivateCallback,
-		  destroy_dialog, (XtPointer) ellip_frame);
+	AddButtonCB(buts[0], ellip_def_proc, (void *) 0);
+	AddButtonCB(buts[1], destroy_dialog_cb, (void *) ellip_frame);
 
 	ManageChild(panel);
     }
@@ -345,11 +340,11 @@ static void define_strings_popup(void *data)
 	char *label1[2];
 	label1[0] = "Accept";
 	label1[1] = "Close";
-	strings_frame = XmCreateDialogShell(app_shell, "Strings", NULL, 0);
+	strings_frame = CreateDialogShell(app_shell, "Strings");
 	handle_close(strings_frame);
-	panel = XmCreateRowColumn(strings_frame, "strings_rc", NULL, 0);
+	panel = CreateDialogRC(strings_frame);
 
-        rc = XtVaCreateWidget("rc", xmRowColumnWidgetClass, panel, NULL);
+        rc = CreateVContainer(panel);
 
 	strings_font_item = CreateFontChoice(rc, "Font:");
 
@@ -371,10 +366,8 @@ static void define_strings_popup(void *data)
 	CreateSeparator(panel);
 
 	CreateCommandButtons(panel, 2, buts, label1);
-	XtAddCallback(buts[0], XmNactivateCallback,
-		    define_string_defaults, (XtPointer) 0);
-	XtAddCallback(buts[1], XmNactivateCallback,
-		destroy_dialog, (XtPointer) strings_frame);
+	AddButtonCB(buts[0], define_string_defaults, (void *) 0);
+	AddButtonCB(buts[1], destroy_dialog_cb, (void *) strings_frame);
 
 	ManageChild(panel);
     }
@@ -394,11 +387,11 @@ static void define_lines_popup(void *data)
 	char *label1[2];
 	label1[0] = "Accept";
 	label1[1] = "Close";
-	lines_frame = XmCreateDialogShell(app_shell, "Lines", NULL, 0);
+	lines_frame = CreateDialogShell(app_shell, "Lines");
 	handle_close(lines_frame);
-	panel = XmCreateRowColumn(lines_frame, "lines_rc", NULL, 0);
+	panel = CreateDialogRC(lines_frame);
 
-        rc = XtVaCreateWidget("rc", xmRowColumnWidgetClass, panel, NULL);
+        rc = CreateVContainer(panel);
 
 	lines_color_item = CreateColorChoice(rc, "Color: ");
 
@@ -407,7 +400,7 @@ static void define_lines_popup(void *data)
 	lines_style_item = CreateLineStyleChoice(rc, "Line style:");
 
 	fr = CreateFrame(rc, "Arrow");
-        rc2 = XtVaCreateWidget("rc2", xmRowColumnWidgetClass, fr, NULL);
+        rc2 = CreateVContainer(fr);
         lines_arrow_item = CreatePanelChoice(rc2, "Place at:",
 					     5,
 					     "None",
@@ -439,10 +432,8 @@ static void define_lines_popup(void *data)
 	CreateSeparator(panel);
 
 	CreateCommandButtons(panel, 2, buts, label1);
-	XtAddCallback(buts[0], XmNactivateCallback,
-		      lines_def_proc, (XtPointer) 0);
-	XtAddCallback(buts[1], XmNactivateCallback,
-		  destroy_dialog, (XtPointer) lines_frame);
+	AddButtonCB(buts[0], lines_def_proc, (void *) 0);
+	AddButtonCB(buts[1], destroy_dialog_cb, (void *) lines_frame);
 
 	ManageChild(panel);
     }
@@ -462,11 +453,11 @@ static void define_boxes_popup(void *data)
 	char *label1[2];
 	label1[0] = "Accept";
 	label1[1] = "Close";
-	boxes_frame = XmCreateDialogShell(app_shell, "Boxes", NULL, 0);
+	boxes_frame = CreateDialogShell(app_shell, "Boxes");
 	handle_close(boxes_frame);
-	panel = XmCreateRowColumn(boxes_frame, "boxes_rc", NULL, 0);
+	panel = CreateDialogRC(boxes_frame);
 
-        rc = XtVaCreateWidget("rc", xmRowColumnWidgetClass, panel, NULL);
+        rc = CreateVContainer(panel);
 
 	boxes_color_item = CreateColorChoice(rc, "Color: ");
 
@@ -486,10 +477,8 @@ static void define_boxes_popup(void *data)
 	CreateSeparator(panel);
 
 	CreateCommandButtons(panel, 2, buts, label1);
-	XtAddCallback(buts[0], XmNactivateCallback,
-		      boxes_def_proc, (XtPointer) 0);
-	XtAddCallback(buts[1], XmNactivateCallback,
-		  destroy_dialog, (XtPointer) boxes_frame);
+	AddButtonCB(buts[0], boxes_def_proc, (void *) 0);
+	AddButtonCB(buts[1], destroy_dialog_cb, (void *) boxes_frame);
 
 	ManageChild(panel);
     }
@@ -558,7 +547,7 @@ void update_ellipse_edit(EditBoxUI *ui)
 }
 
 
-void swap_ellipwv_coords(Widget w, XtPointer client_data, XtPointer call_data)
+void swap_ellipwv_coords(void *client_data)
 {
     EditBoxUI *ui = (EditBoxUI *)client_data;
     int ellipno = ui->boxno;
@@ -587,7 +576,7 @@ void swap_ellipwv_coords(Widget w, XtPointer client_data, XtPointer call_data)
 }
 
 
-void ellipse_edit_proc(Widget w, XtPointer client_data, XtPointer call_data)
+void ellipse_edit_proc(void *client_data)
 {
     EditBoxUI *ui = (EditBoxUI *) client_data;
     int ellipno = ui->boxno;
@@ -615,7 +604,7 @@ void ellipse_edit_proc(Widget w, XtPointer client_data, XtPointer call_data)
 }
 
 
-void swap_boxwv_coords(Widget w, XtPointer client_data, XtPointer call_data)
+void swap_boxwv_coords(void *client_data)
 {
     EditBoxUI *ui = (EditBoxUI *)client_data;
     int boxno = ui->boxno;
@@ -642,7 +631,7 @@ void swap_boxwv_coords(Widget w, XtPointer client_data, XtPointer call_data)
 }
 
 
-void box_edit_proc(Widget w, XtPointer client_data, XtPointer call_data)
+void box_edit_proc(void *client_data)
 {
     EditBoxUI *ui = (EditBoxUI *) client_data;
     int boxno = ui->boxno;
@@ -673,12 +662,12 @@ void box_edit_popup(int boxno)
 	char *label1[3];
 	label1[0] = "Accept";
 	label1[1] = "Close";
-	box_ui.top = XmCreateDialogShell(app_shell, "Edit box", NULL, 0);
+	box_ui.top = CreateDialogShell(app_shell, "Edit box");
 
 	handle_close(box_ui.top);
-	panel = XmCreateRowColumn(box_ui.top, "boxes_rc", NULL, 0);
+	panel = CreateDialogRC(box_ui.top);
 
-        rc = XtVaCreateWidget("rc", xmRowColumnWidgetClass, panel, NULL);
+        rc = CreateVContainer(panel);
 
 	box_ui.color_item = CreateColorChoice(rc, "Color: ");
 
@@ -694,10 +683,8 @@ void box_edit_popup(int boxno)
 					   "Viewport coordinates",
 					   NULL);
                                           
-        XtAddCallback(box_ui.loc_item[2], XmNactivateCallback, 
-               swap_boxwv_coords, (XtPointer) &box_ui);
-        XtAddCallback(box_ui.loc_item[3], XmNactivateCallback, 
-               swap_boxwv_coords, (XtPointer) &box_ui);
+        AddButtonCB(box_ui.loc_item[2], swap_boxwv_coords, (void *) &box_ui);
+        AddButtonCB(box_ui.loc_item[3], swap_boxwv_coords, (void *) &box_ui);
 
 
 	box_ui.x1_item = CreateTextItem2(rc, 12, "Xmin = ");
@@ -709,10 +696,8 @@ void box_edit_popup(int boxno)
 	CreateSeparator(panel);
 
 	CreateCommandButtons(panel, 2, buts, label1);
-	XtAddCallback(buts[0], XmNactivateCallback,
-	  	box_edit_proc, (XtPointer) &box_ui);
-	XtAddCallback(buts[1], XmNactivateCallback,
-		destroy_dialog, (XtPointer) box_ui.top);
+	AddButtonCB(buts[0], box_edit_proc, (void *) &box_ui);
+	AddButtonCB(buts[1], destroy_dialog_cb, (void *) box_ui.top);
 	ManageChild(panel);
     }
     box_ui.boxno = boxno;
@@ -733,11 +718,11 @@ void ellipse_edit_popup(int boxno)
 		char *label1[2];
 		label1[0] = "Accept";
 		label1[1] = "Close";
-		ellip_ui.top = XmCreateDialogShell(app_shell, "Edit ellipse", NULL, 0);
+		ellip_ui.top = CreateDialogShell(app_shell, "Edit ellipse");
 		handle_close(ellip_ui.top);
-		panel = XmCreateRowColumn(ellip_ui.top, "ellipses_rc", NULL, 0);
+		panel = CreateDialogRC(ellip_ui.top);
 
-    	 rc = XtVaCreateWidget("rc", xmRowColumnWidgetClass, panel, NULL);
+    	 rc = CreateVContainer(panel);
 
 	ellip_ui.color_item = CreateColorChoice(rc, "Color: ");
 
@@ -752,10 +737,8 @@ void ellipse_edit_popup(int boxno)
 					   "World coordinates",
 					   "Viewport coordinates",
 					   NULL);
-        XtAddCallback(ellip_ui.loc_item[2], XmNactivateCallback, 
-               swap_ellipwv_coords, (XtPointer) &ellip_ui );
-        XtAddCallback(ellip_ui.loc_item[3], XmNactivateCallback, 
-               swap_ellipwv_coords, (XtPointer) &ellip_ui );
+        AddButtonCB(ellip_ui.loc_item[2], swap_ellipwv_coords, (void *) &ellip_ui);
+        AddButtonCB(ellip_ui.loc_item[3], swap_ellipwv_coords, (void *) &ellip_ui);
 
 
 	ellip_ui.x1_item = CreateTextItem2(rc, 12, "Xcentre = ");
@@ -768,10 +751,8 @@ void ellipse_edit_popup(int boxno)
 
     	ellip_ui.boxno = boxno;
     	CreateCommandButtons(panel, 2, buts, label1);
-    	XtAddCallback(buts[0], XmNactivateCallback,
-		    	  ellipse_edit_proc, (XtPointer) &ellip_ui);
-    	XtAddCallback(buts[1], XmNactivateCallback,
-			  destroy_dialog, (XtPointer) ellip_ui.top);
+    	AddButtonCB(buts[0], ellipse_edit_proc, (void *) &ellip_ui);
+    	AddButtonCB(buts[1], destroy_dialog_cb, (void *) ellip_ui.top);
     	ManageChild(panel);
     }
     ellip_ui.boxno = boxno;
@@ -822,7 +803,7 @@ void update_line_edit(EditLineUI *ui)
     }
 }
 
-void swap_linewv_coords(Widget w, XtPointer client_data, XtPointer call_data)
+void swap_linewv_coords(void *client_data)
 {
     EditLineUI *ui = (EditLineUI *)client_data;
     int lineno = ui->lineno;
@@ -849,7 +830,7 @@ void swap_linewv_coords(Widget w, XtPointer client_data, XtPointer call_data)
 }
 
 
-void line_edit_proc(Widget w, XtPointer client_data, XtPointer call_data)
+void line_edit_proc(void *client_data)
 {
     EditLineUI *ui = (EditLineUI *) client_data;
     int lineno = ui->lineno;
@@ -885,11 +866,11 @@ void line_edit_popup(int lineno)
 	char *label1[2];
 	label1[0] = "Accept";
 	label1[1] = "Close";
-	line_ui.top = XmCreateDialogShell(app_shell, "Edit Line", NULL, 0);
+	line_ui.top = CreateDialogShell(app_shell, "Edit Line");
 	handle_close(line_ui.top);
-	panel = XmCreateRowColumn(line_ui.top, "lines_rc", NULL, 0);
+	panel = CreateDialogRC(line_ui.top);
 
-        rc = XtVaCreateWidget("rc", xmRowColumnWidgetClass, panel, NULL);
+        rc = CreateVContainer(panel);
 
 	line_ui.color_item = CreateColorChoice(rc, "Color: ");
 
@@ -898,7 +879,7 @@ void line_edit_popup(int lineno)
 	line_ui.lines_item = CreateLineStyleChoice(rc, "Line style:");
 
 	fr = CreateFrame(rc, "Arrow");
-        rc2 = XtVaCreateWidget("rc2", xmRowColumnWidgetClass, fr, NULL);
+        rc2 = CreateVContainer(fr);
         line_ui.arrow_item = CreatePanelChoice(rc2, "Place at:",
 					     5,
 					     "None",
@@ -927,10 +908,8 @@ void line_edit_popup(int lineno)
 					   "World coordinates",
 					   "Viewport coordinates",
 					   NULL);
-        XtAddCallback(line_ui.loc_item[2], XmNactivateCallback,
-                   swap_linewv_coords, (XtPointer) &line_ui);
-        XtAddCallback(line_ui.loc_item[3], XmNactivateCallback,
-                   swap_linewv_coords, (XtPointer) &line_ui);
+        AddButtonCB(line_ui.loc_item[2], swap_linewv_coords, (void *) &line_ui);
+        AddButtonCB(line_ui.loc_item[3], swap_linewv_coords, (void *) &line_ui);
 
 
 	line_ui.x1_item = CreateTextItem2(rc, 12, "X1 = ");
@@ -942,10 +921,8 @@ void line_edit_popup(int lineno)
 	CreateSeparator(panel);
 
 	CreateCommandButtons(panel, 2, buts, label1);
-	XtAddCallback(buts[0], XmNactivateCallback,
-		line_edit_proc, (XtPointer) &line_ui);
-	XtAddCallback(buts[1], XmNactivateCallback,
-		destroy_dialog, (XtPointer) line_ui.top);
+	AddButtonCB(buts[0], line_edit_proc, (void *) &line_ui);
+	AddButtonCB(buts[1], destroy_dialog_cb, (void *) line_ui.top);
 
 	ManageChild(panel);
     }
@@ -988,7 +965,7 @@ void update_string_edit(EditStringUI *ui)
     }
 }
 
-void swap_stringwv_coords(Widget w, XtPointer client_data, XtPointer call_data)
+void swap_stringwv_coords(void *client_data)
 {
     EditStringUI *ui = (EditStringUI *)client_data;
     int stringno = ui->stringno;
@@ -1011,7 +988,7 @@ void swap_stringwv_coords(Widget w, XtPointer client_data, XtPointer call_data)
 }
 
 
-void string_edit_proc(Widget w, XtPointer client_data, XtPointer call_data)
+void string_edit_proc(void *client_data)
 {
     EditStringUI *ui = (EditStringUI *) client_data;
     int stringno = ui->stringno;
@@ -1043,13 +1020,13 @@ void string_edit_popup(int stringno)
 	char *label1[2];
 	label1[0] = "Accept";
 	label1[1] = "Close";
-	string_ui.top = XmCreateDialogShell(app_shell, "Edit String", NULL, 0);
+	string_ui.top = CreateDialogShell(app_shell, "Edit String");
 	handle_close(string_ui.top);
-	panel = XmCreateRowColumn(string_ui.top, "strings_rc", NULL, 0);
+	panel = CreateDialogRC(string_ui.top);
 
 	string_ui.string_item = CreateCSText(panel, "String:");
 
-        rc = XtVaCreateWidget("rc", xmRowColumnWidgetClass, panel, NULL);
+        rc = CreateVContainer(panel);
 
 	string_ui.color_item = CreateColorChoice(rc, "Color: ");
 	
@@ -1063,10 +1040,8 @@ void string_edit_popup(int stringno)
 					     "World coordinates",
 					     "Viewport coordinates",
 					     NULL);
-        XtAddCallback(string_ui.loc_item[2], XmNactivateCallback,
-                  swap_stringwv_coords, (XtPointer) &string_ui);
-        XtAddCallback(string_ui.loc_item[3], XmNactivateCallback,
-                  swap_stringwv_coords, (XtPointer) &string_ui);
+        AddButtonCB(string_ui.loc_item[2], swap_stringwv_coords, (void *) &string_ui);
+        AddButtonCB(string_ui.loc_item[3], swap_stringwv_coords, (void *) &string_ui);
 					     
 	string_ui.x1_item = CreateTextItem2(rc, 12, "X = ");
 	string_ui.y1_item = CreateTextItem2(rc, 12, "Y = ");	
@@ -1080,10 +1055,8 @@ void string_edit_popup(int stringno)
 	CreateSeparator(panel);
 
 	CreateCommandButtons(panel, 2, buts, label1);
-	XtAddCallback(buts[0], XmNactivateCallback,
-		    string_edit_proc, (XtPointer) &string_ui );
-	XtAddCallback(buts[1], XmNactivateCallback,
-		destroy_dialog, (XtPointer) string_ui.top);
+	AddButtonCB(buts[0], string_edit_proc, (void *) &string_ui);
+	AddButtonCB(buts[1], destroy_dialog_cb, (void *) string_ui.top);
 
 	ManageChild(panel);
     }

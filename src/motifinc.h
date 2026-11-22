@@ -448,6 +448,7 @@ int IsManaged(Widget w);
 int IsSensitive(Widget w);
 Widget CreateScrolledVContainer(Widget parent, int height);
 void SetTextCursorPos(Widget w, int pos);
+char *GetTextItemString(Widget w);
 Widget CreateDialogShell(Widget parent, char *s);
 Widget CreateDialogRC(Widget shell);
 Widget CreateColumnGrid(Widget parent, int nrows);
@@ -464,6 +465,27 @@ char *TableGetCell(Widget w, int row, int col);
 int TableGetNumRows(Widget w);
 void TableSetNumRows(Widget w, int nrows, char **rowlabels);
 void TableCommitEdit(Widget w);
+
+/*
+ * spreadsheets: tables whose cells are provided by callbacks; rows are
+ * labeled with their index
+ */
+typedef char *(*SS_GetProc)(void *data, int row, int col);
+typedef void (*SS_SetProc)(void *data, int row, int col, char *value);
+typedef void (*SS_LabelProc)(void *data, int is_row, int row, int col);
+
+Widget CreateSpreadSheet(Widget parent, int nrows, int ncols,
+    int visrows, int viscols,
+    SS_GetProc get, SS_SetProc set, SS_LabelProc label, void *data);
+void SpreadSheetGetSize(Widget w, int *nrows, int *ncols);
+void SpreadSheetSetSize(Widget w, int nrows, int ncols,
+    char **collabels, short *widths, int *maxlengths);
+void SpreadSheetRefresh(Widget w);
+void SpreadSheetGetCurrentCell(Widget w, int *row, int *col);
+int SpreadSheetIsRowSelected(Widget w, int row);
+void SpreadSheetSelectRow(Widget w, int row, int onoff);
+void SpreadSheetDeselectAll(Widget w);
+void SpreadSheetCommitEdit(Widget w);
 
 Widget CreateMenuBar(Widget parent);
 Widget CreateMenu(Widget parent, char *label, char mnemonic, int help);

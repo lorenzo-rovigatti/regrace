@@ -37,14 +37,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <Xm/Xm.h>
-#include <Xm/DialogS.h>
-#include <Xm/Form.h>
-#include <Xm/Label.h>
-#include <Xm/PushB.h>
-#include <Xm/RowColumn.h>
-#include <Xm/ToggleB.h>
-#include <Xm/Text.h>
 
 #include "globals.h"
 #include "utils.h"
@@ -65,7 +57,7 @@ typedef struct _Featext_ui {
 static Featext_ui feui;
 static Widget but2[3];
  
-void do_fext_proc( Widget, XtPointer, XtPointer );
+void do_fext_proc(void *);
 double linear_interp( double, double, double, double, double );
 int dbl_comp( const void *, const void * );
 
@@ -82,7 +74,7 @@ int get_barycenter( int n, double *x, double *y, double *barycenter );
 void fext_routine( int gto, int feature, int abs_src, int abs_set, int abs_graph );
 void get_max_pos( double *a, double *b, int n, double max, double *d );
 
-void do_fext_toggle (Widget w, XtPointer client_data, XtPointer call_data)
+void do_fext_toggle(void *client_data)
 {
     int value = (int) client_data;
     if (value == 2 || value == 3) {
@@ -129,9 +121,9 @@ void create_featext_frame(void *data)
 
 	label2[0] = "Accept";
 	label2[1] = "Close";
-	feui.top = XmCreateDialogShell(app_shell, "Feature Extraction", NULL, 0);
+	feui.top = CreateDialogShell(app_shell, "Feature Extraction");
 	handle_close(feui.top);
-	dialog = XmCreateRowColumn(feui.top, "dialog_rc", NULL, 0);
+	dialog = CreateDialogRC(feui.top);
 
 	feui.tograph = CreateGraphChoice(dialog, "Results to graph:", LIST_TYPE_SINGLE);
 	feui.feature_item =
@@ -142,13 +134,12 @@ void create_featext_frame(void *data)
 						NULL);
 	
 	for (i = 0; i < 4; i++) {
-	    XtAddCallback(feui.xval_item[2 + i], XmNactivateCallback,
-			(XtCallbackProc) do_fext_toggle, (XtPointer) i);
+	    AddButtonCB(feui.xval_item[2 + i], do_fext_toggle, (void *) i);
 	}
 	
 	CreateSeparator(dialog);
 
-	feui.legload_rc= XmCreateRowColumn(dialog, "fext_legload_rc", NULL, 0);
+	feui.legload_rc= CreateVContainer(dialog);
 	
 	feui.absic_graph = CreateGraphChoice(feui.legload_rc,
 	    "Abscissa from graph:", LIST_TYPE_SINGLE);
@@ -165,10 +156,8 @@ void create_featext_frame(void *data)
 	CreateSeparator(dialog);
 
 	CreateCommandButtons(dialog, 2, but2, label2);
-	XtAddCallback(but2[0], XmNactivateCallback, (XtCallbackProc)
-	do_fext_proc,(XtPointer) & feui);
-	XtAddCallback(but2[1], XmNactivateCallback,
-	(XtCallbackProc)destroy_dialog,(XtPointer)feui.top);
+	AddButtonCB(but2[0], do_fext_proc, (void *) & feui);
+	AddButtonCB(but2[1], destroy_dialog_cb, (void *) feui.top);
 
 	ManageChild(dialog);
     }
@@ -177,7 +166,7 @@ void create_featext_frame(void *data)
 }
 
 
-void do_fext_proc( Widget w, XtPointer client_data, XtPointer call_data )
+void do_fext_proc(void *client_data)
 {
     int gto, feature, abs_graph = -1, abs_set = -1, abs_src;
 

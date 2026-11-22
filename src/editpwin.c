@@ -45,8 +45,6 @@
 #include "files.h"
 #include "protos.h"
 
-#include <Xm/Xm.h>
-#include <Xbae/Matrix.h>
 #include "motifinc.h"
 
 
@@ -87,7 +85,7 @@ static void update_cells(EditPoints *ep);
 
 static void get_ep_dims(EditPoints *ep, int *nr, int *nc)
 {
-    XtVaGetValues(ep->mw, XmNrows, nr, XmNcolumns, nc, NULL);
+    SpreadSheetGetSize(ep->mw, nr, nc);
 }
 
 static int get_ep_set_dims(EditPoints *ep, int *nrows, int *ncols, int *scols)
@@ -115,7 +113,7 @@ static void del_rows_cb(void *data)
 {
     int i;
     int nrows, ncols, scols, nc, nr;
-    int nscells, row_start, nsrows, nsrows_max, *srows;
+    int nsrows, *srows;
     EditPoints *ep = (EditPoints *) data;
     char buf[64];
 
@@ -128,26 +126,22 @@ static void del_rows_cb(void *data)
         return;
     }
     
-    row_start = XbaeMatrixFirstSelectedRow(ep->mw);
-    if (row_start < 0 || row_start >= nrows) {
-        errmsg("Nothing to delete");
-        return;
-    }
-    
-    nscells = XbaeMatrixGetNumSelected(ep->mw);
-    nsrows_max = nscells/nc;
-    srows = xmalloc(nsrows_max*SIZEOF_INT);
+    srows = xmalloc(nrows*SIZEOF_INT);
     if (!srows) {
         errmsg("Not enough memory");
         return;
     }
     
-    for (nsrows = 0, i = row_start; i < nrows && nscells > 0; i++) {
-        if (XbaeMatrixIsRowSelected(ep->mw, i)) {
+    for (nsrows = 0, i = 0; i < nrows; i++) {
+        if (SpreadSheetIsRowSelected(ep->mw, i)) {
             srows[nsrows] = i;
             nsrows++;
-            nscells -= nc;
         }
+    }
+    if (nsrows == 0) {
+        errmsg("Nothing to delete");
+        xfree(srows);
+        return;
     }
     
     sprintf(buf, "Delete %d selected row(s)?", nsrows);
@@ -156,7 +150,7 @@ static void del_rows_cb(void *data)
             del_point(ep->gno, ep->setno, srows[i]);
         }
 
-        XbaeMatrixDeselectAll(ep->mw);
+        SpreadSheetDeselectAll(ep->mw);
 
         update_set_lists(ep->gno);
         update_cells(ep);
@@ -181,7 +175,7 @@ void add_row_cb(void *data)
     EditPoints *ep = (EditPoints *) data;
     int gno = ep->gno, setno = ep->setno;
 
-    XbaeMatrixGetCurrentCell(ep->mw, &i, &j);
+    SpreadSheetGetCurrentCell(ep->mw, &i, &j);
     
     if (get_ep_set_dims(ep, &nrows, &ncols, &scols) != RETURN_SUCCESS) {
         return;
@@ -305,13 +299,19 @@ static void do_props_cb(void *data)
     do_props(ep, -1);
 }
 
-static void leaveCB(Widget w, XtPointer client_data, XtPointer calld)
+static void ss_set(void *data, int row, int column, char *value)
 {
     int nrows, ncols, scols;
     int changed = FALSE;
-    EditPoints *ep = (EditPoints *) client_data;
-    XbaeMatrixLeaveCellCallbackStruct *cs =
-    	    (XbaeMatrixLeaveCellCallbackStruct *) calld;
+    EditPoints *ep = (EditPoints *) data;
+    struct {
+        int row, column;
+        char *value;
+    } cs_data, *cs = &cs_data;
+    
+    cs->row = row;
+    cs->column = column;
+    cs->value = value;
 
     if (get_ep_set_dims(ep, &nrows, &ncols, &scols) != RETURN_SUCCESS) {
         return;
@@ -402,34 +402,29 @@ static char *get_cell_content(EditPoints *ep, int row, int column)
     return s;
 }
 
-static void drawcellCB(Widget w, XtPointer client_data, XtPointer calld)
+static char *ss_get(void *data, int row, int column)
 {
-    EditPoints *ep = (EditPoints *) client_data;
-    XbaeMatrixDrawCellCallbackStruct *cs =
-    	    (XbaeMatrixDrawCellCallbackStruct *) calld;
+    EditPoints *ep = (EditPoints *) data;
 
-    cs->type = XbaeString;
-    cs->string = get_cell_content(ep, cs->row, cs->column);
+    return get_cell_content(ep, row, column);
 }
 
-static void labelCB(Widget w, XtPointer client_data, XtPointer call_data)
+static void ss_label(void *data, int row_label, int row, int column)
 {
-    EditPoints *ep = (EditPoints *) client_data;
-    XbaeMatrixLabelActivateCallbackStruct *cbs =
-	(XbaeMatrixLabelActivateCallbackStruct *) call_data;
+    EditPoints *ep = (EditPoints *) data;
 
-    if (cbs->row_label) {
-	if (XbaeMatrixIsRowSelected(ep->mw, cbs->row)) {
-	    XbaeMatrixDeselectRow(ep->mw, cbs->row);
+    if (row_label) {
+	if (SpreadSheetIsRowSelected(ep->mw, row)) {
+	    SpreadSheetSelectRow(ep->mw, row, FALSE);
 	} else {
-	    XbaeMatrixSelectRow(ep->mw, cbs->row);
+	    SpreadSheetSelectRow(ep->mw, row, TRUE);
         }
     } else {
         int ncols, nrows, scols;
         if (get_ep_set_dims(ep, &nrows, &ncols, &scols) != RETURN_SUCCESS) {
             return;
-        } else if (cbs->column < ncols) {
-            do_props(ep, cbs->column);
+        } else if (column < ncols) {
+            do_props(ep, column);
         }
     }
 }
@@ -479,7 +474,7 @@ EditPoints *get_unused_ep()
     EditPoints *ep_tmp = ep_start;
 
     while (ep_tmp != NULL) {
-        if (XtIsManaged(GetParent(ep_tmp->top)) == False) {
+        if (IsManaged(GetParent(ep_tmp->top)) == FALSE) {
             break;
         }
         ep_tmp = ep_tmp->next;
@@ -494,7 +489,7 @@ void update_ss_editors(int gno)
     while (ep != NULL) {
         if (ep->gno == gno || gno == ALL_GRAPHS) {
             /* don't spend time on unmanaged SS editors */
-            if (XtIsManaged(GetParent(ep->top))) {
+            if (IsManaged(GetParent(ep->top))) {
                 update_cells(ep);
             }
         } else if (!is_valid_gno(ep->gno)) {
@@ -509,16 +504,12 @@ void update_ss_editors(int gno)
  */
 static void update_cells(EditPoints *ep)
 {
-    int i, nr, nc, new_nr, new_nc, delta_nr, delta_nc;
-    int c_row, c_column;
+    int i, new_nr, new_nc;
     int ncols, nrows, scols;
     short widths[MAX_SET_COLS + 1];
     int maxlengths[MAX_SET_COLS + 1];
     char *collabels[MAX_SET_COLS + 1];
-    unsigned char column_label_alignments[MAX_SET_COLS + 1];
-    short width;
     char buf[32];
-    char **rowlabels;
 
     if (ep->update == FALSE) {
         return;
@@ -535,94 +526,29 @@ static void update_cells(EditPoints *ep)
     SetOptionChoice(ep->stype, dataset_type(ep->gno, ep->setno));
     SetTextString(ep->comment, getcomment(ep->gno, ep->setno));
     
-    /* get current size of widget and update rows/columns as needed */
-    get_ep_dims(ep, &nr, &nc);
-
     new_nc = MAX2(ncols + scols, MIN_SS_COLS);
     new_nr = MAX2(nrows, MIN_SS_ROWS);
-    
-    delta_nr = new_nr - nr;
-    delta_nc = new_nc - nc;
-    
-#if XbaeVersion < 45101
-    /* A bug in Xbae - the cell with focus on is NOT updated, so we do it */
-    /* Fixed in 4.51.01 */
-    XbaeMatrixGetCurrentCell(ep->mw, &c_row, &c_column);
-    XbaeMatrixSetCell(ep->mw,
-        c_row, c_column, get_cell_content(ep, c_row, c_column));
-#endif
-    
-    if (delta_nr == 0 && delta_nc == 0) {
-        XbaeMatrixRefresh(ep->mw);
-        return;
-    }
     
     for (i = 0; i < ncols; i++) {
         widths[i] = CELL_WIDTH;
         maxlengths[i] = 2*CELL_WIDTH;
         collabels[i] = copy_string(NULL, dataset_colname(i));
-        column_label_alignments[i] = XmALIGNMENT_CENTER;
     }
     if (scols) {
         widths[i] = CELL_WIDTH;
         maxlengths[i] = STRING_CELL_WIDTH;
         collabels[i] = copy_string(NULL, "String");
-        column_label_alignments[i] = XmALIGNMENT_CENTER;
     }
-
-    if (delta_nr > 0) {
-        rowlabels = xmalloc(delta_nr*sizeof(char *));
-        for (i = 0; i < delta_nr; i++) {
-    	    sprintf(buf, "%d", nr + i);
-    	    rowlabels[i] = copy_string(NULL, buf);
-        }
-        XbaeMatrixAddRows(ep->mw, nr, NULL, rowlabels, NULL, delta_nr);
-        for (i = 0; i < delta_nr; i++) {
-	    xfree(rowlabels[i]);
-        }
-        xfree(rowlabels);
-    } else if (delta_nr < 0) {
-        XbaeMatrixDeleteRows(ep->mw, nrows, -delta_nr);
-        if (nrows < MIN_SS_ROWS) {
-            rowlabels = xmalloc(MIN_SS_ROWS*sizeof(char *));
-            for (i = 0; i < MIN_SS_ROWS; i++) {
-                sprintf(buf, "%d", i);
-    	        rowlabels[i] = copy_string(NULL, buf);
-            }
-            XtVaSetValues(ep->mw, XmNrowLabels, rowlabels, NULL);
-            for (i = 0; i < delta_nr; i++) {
-	        xfree(rowlabels[i]);
-            }
-            xfree(rowlabels);
-        }
+    for (i = ncols + scols; i < new_nc; i++) {
+        widths[i] = CELL_WIDTH;
+        maxlengths[i] = 2*CELL_WIDTH;
+        collabels[i] = copy_string(NULL, "");
     }
     
-    if (delta_nc > 0) {
-        XbaeMatrixAddColumns(ep->mw, nc, NULL, NULL, widths, maxlengths, 
-            NULL, NULL, NULL, delta_nc);
-    } else if (delta_nc < 0) {
-        XbaeMatrixDeleteColumns(ep->mw, ncols, -delta_nc);
-    }
-		
-    /* Adjust row label width */
-    width = (short) ceil(log10(new_nr)) + 1;
-    
-    XtVaSetValues(ep->mw,
-	XmNrowLabelWidth, width,
-        XmNvisibleColumns, ncols + scols,
-        XmNcolumnMaxLengths, maxlengths,
-        XmNcolumnLabels, collabels,
-        XmNcolumnLabelAlignments, column_label_alignments,
-	NULL);
-
-    if (delta_nc != 0) {
-        XtVaSetValues(ep->mw,
-            XmNcolumnWidths, widths,
-	    NULL);
-    }
+    SpreadSheetSetSize(ep->mw, new_nr, new_nc, collabels, widths, maxlengths);
 
     /* free memory used to hold strings */
-    for (i = 0; i < ncols + scols; i++) {
+    for (i = 0; i < new_nc; i++) {
 	xfree(collabels[i]);
     }
 }
@@ -637,7 +563,7 @@ int ep_aac_proc(void *data)
     comment = GetTextString(ep->comment);
     
     /* commit the last entered cell changes */
-    XbaeMatrixCommitEdit(ep->mw, False);
+    SpreadSheetCommitEdit(ep->mw);
     
     set_dataset_type(ep->gno, ep->setno, stype);
     setcomment(ep->gno, ep->setno, comment);
@@ -651,8 +577,6 @@ int ep_aac_proc(void *data)
 static EditPoints *new_ep(void)
 {
     int i;
-    short widths[MIN_SS_COLS];
-    char *rowlabels[MIN_SS_ROWS];
     EditPoints *ep;
     Widget fr, rc, menubar, menupane;
     
@@ -697,39 +621,8 @@ static EditPoints *new_ep(void)
     ep->stype = CreateSetTypeChoice(rc, "Type:");
     ep->comment = CreateTextInput(rc, "Comment:");
 
-    for (i = 0; i < MIN_SS_ROWS; i++) {
-    	char buf[32];
-        sprintf(buf, "%d", i);
-    	rowlabels[i] = copy_string(NULL, buf);
-    }
-    for (i = 0; i < MIN_SS_COLS; i++) {
-        widths[i] = CELL_WIDTH;
-    }
-
-    ep->mw = XtVaCreateManagedWidget("mw",
-        xbaeMatrixWidgetClass, ep->top,
-        XmNrows, MIN_SS_ROWS,
-        XmNvisibleRows, VISIBLE_SS_ROWS,
-        XmNbuttonLabels, True,
-        XmNrowLabels, rowlabels,
-        XmNcolumns, MIN_SS_COLS,
-        XmNvisibleColumns, MIN_SS_COLS,
-        XmNcolumnWidths, widths,
-        XmNallowColumnResize, True,
-        XmNgridType, XmGRID_CELL_SHADOW,
-        XmNcellShadowType, XmSHADOW_ETCHED_OUT,
-        XmNcellShadowThickness, 2,
-        XmNaltRowCount, 0,
-        XmNcalcCursorPosition, True,
-        NULL);
-
-    for (i = 0; i < MIN_SS_ROWS; i++) {
-	xfree(rowlabels[i]);
-    }
-
-    XtAddCallback(ep->mw, XmNdrawCellCallback, drawcellCB, ep);	
-    XtAddCallback(ep->mw, XmNleaveCellCallback, leaveCB, ep);
-    XtAddCallback(ep->mw, XmNlabelActivateCallback, labelCB, ep);
+    ep->mw = CreateSpreadSheet(ep->top, MIN_SS_ROWS, MIN_SS_COLS,
+        VISIBLE_SS_ROWS, MIN_SS_COLS, ss_get, ss_set, ss_label, ep);
 
     CreateAACDialog(ep->top, ep->mw, ep_aac_proc, ep);
 

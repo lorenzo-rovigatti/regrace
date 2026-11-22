@@ -57,16 +57,18 @@ MOTIF_GUIOBJS =  Tab$(O) motifutils$(O) guiutils$(O) \
 #
 
 FLTK_GUISRCS = fl_mainwin.cpp fl_drv.cpp fl_dialogs.cpp fl_motifutils.cpp \
-	fl_fontwin.cpp fl_events.c fl_stubs.c guiutils.c \
+	fl_fontwin.cpp fl_events.c guiutils.c \
 	compwin.c eblockwin.c graphappwin.c locatewin.c miscwin.c \
 	nonlwin.c plotwin.c printwin.c ptswin.c setappwin.c setwin.c \
-	tickwin.c worldwin.c
+	tickwin.c worldwin.c strwin.c regionwin.c hotwin.c featext.c fileswin.c \
+	editpwin.c
 
 FLTK_GUIOBJS = fl_mainwin$(O) fl_drv$(O) fl_dialogs$(O) fl_motifutils$(O) \
-	fl_fontwin$(O) fl_events$(O) fl_stubs$(O) guiutils$(O) \
+	fl_fontwin$(O) fl_events$(O) guiutils$(O) \
 	compwin$(O) eblockwin$(O) graphappwin$(O) locatewin$(O) miscwin$(O) \
 	nonlwin$(O) plotwin$(O) printwin$(O) ptswin$(O) setappwin$(O) setwin$(O) \
-	tickwin$(O) worldwin$(O)
+	tickwin$(O) worldwin$(O) strwin$(O) regionwin$(O) hotwin$(O) featext$(O) \
+	fileswin$(O) editpwin$(O)
 
 #
 # The GUI actually built (GUI_SRCS and GUI_OBJS are set by configure)

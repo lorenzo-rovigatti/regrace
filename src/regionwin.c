@@ -34,14 +34,6 @@
 
 #include <stdio.h>
 
-#include <Xm/Xm.h>
-#include <Xm/Form.h>
-#include <Xm/DialogS.h>
-#include <Xm/Label.h>
-#include <Xm/PushB.h>
-#include <Xm/RowColumn.h>
-#include <Xm/ScrolledW.h>
-#include <Xm/Text.h>
 
 #include "globals.h"
 #include "graphs.h"
@@ -56,8 +48,8 @@ static Widget but3[3];
 
 extern int regiontype;	/* in regionutils.c */
 
-static void do_define_region(Widget w, XtPointer client_data, XtPointer call_data);
-static void do_clear_region(Widget w, XtPointer client_data, XtPointer call_data);
+static void do_define_region(void *client_data);
+static void do_clear_region(void *client_data);
 
 
 static Widget *define_region_item;
@@ -67,12 +59,12 @@ static char buf[256];
 
 static Widget status_frame;
 static Widget status_panel;
-static Widget status_sw;
+
 
 static Widget header_w;
 static Widget *labx;
 
-static void do_define_region(Widget w, XtPointer client_data, XtPointer call_data)
+static void do_define_region(void *client_data)
 {
     int rtype = GetChoice(define_type_item);
 
@@ -89,9 +81,9 @@ void create_define_frame(void *data)
 	char *label2[2];
 	label2[0] = "Define";
 	label2[1] = "Close";
-	top = XmCreateDialogShell(app_shell, "Define region", NULL, 0);
+	top = CreateDialogShell(app_shell, "Define region");
 	handle_close(top);
-	dialog = XmCreateRowColumn(top, "dialog_rc", NULL, 0);
+	dialog = CreateDialogRC(top);
 
 	define_region_item = CreatePanelChoice(dialog,
 					       "Define region:",
@@ -117,8 +109,8 @@ void create_define_frame(void *data)
 	CreateSeparator(dialog);
 
 	CreateCommandButtons(dialog, 2, but2, label2);
-	XtAddCallback(but2[0], XmNactivateCallback, (XtCallbackProc) do_define_region, (XtPointer) NULL);
-	XtAddCallback(but2[1], XmNactivateCallback, (XtCallbackProc) destroy_dialog, (XtPointer) top);
+	AddButtonCB(but2[0], do_define_region, (void *) NULL);
+	AddButtonCB(but2[1], destroy_dialog_cb, (void *) top);
 
 	ManageChild(dialog);
     }
@@ -128,7 +120,7 @@ void create_define_frame(void *data)
 
 static Widget *clear_region_item;
 
-static void do_clear_region(Widget w, XtPointer client_data, XtPointer call_data)
+static void do_clear_region(void *client_data)
 {
     int i;
 
@@ -153,9 +145,9 @@ void create_clear_frame(void *data)
 	char *label1[2];
 	label1[0] = "Accept";
 	label1[1] = "Close";
-	top = XmCreateDialogShell(app_shell, "Clear region", NULL, 0);
+	top = CreateDialogShell(app_shell, "Clear region");
 	handle_close(top);
-	dialog = XmCreateRowColumn(top, "dialog_rc", NULL, 0);
+	dialog = CreateDialogRC(top);
 
 	clear_region_item = CreatePanelChoice(dialog,
 					      "Clear region:",
@@ -166,8 +158,8 @@ void create_clear_frame(void *data)
 	CreateSeparator(dialog);
 
 	CreateCommandButtons(dialog, 2, but1, label1);
-	XtAddCallback(but1[0], XmNactivateCallback, (XtCallbackProc) do_clear_region, (XtPointer) NULL);
-	XtAddCallback(but1[1], XmNactivateCallback, (XtCallbackProc) destroy_dialog, (XtPointer) top);
+	AddButtonCB(but1[0], do_clear_region, (void *) NULL);
+	AddButtonCB(but1[1], destroy_dialog_cb, (void *) top);
 
 	ManageChild(dialog);
     }
@@ -180,7 +172,6 @@ Widget arealab, perimlab;
 void create_area_frame(void *data)
 {
     static Widget top, dialog;
-    XmString str;
 
     set_wait_cursor();
     if (top == NULL) {
@@ -188,27 +179,19 @@ void create_area_frame(void *data)
 	label3[0] = "Area";
 	label3[1] = "Perimeter";
 	label3[2] = "Close";
-	top = XmCreateDialogShell(app_shell, "Area/perimeter", NULL, 0);
+	top = CreateDialogShell(app_shell, "Area/perimeter");
 	handle_close(top);
-	dialog = XmCreateRowColumn(top, "dialog_rc", NULL, 0);
+	dialog = CreateDialogRC(top);
 
-	str = XmStringCreateLocalized("[    Area    ]");
-        arealab = XtVaCreateManagedWidget("label Area", xmLabelWidgetClass, dialog,
-					  XmNlabelString, str,
-					  NULL);
-        XmStringFree(str);
-	str = XmStringCreateLocalized("[    Perim    ]");
-	perimlab = XtVaCreateManagedWidget("label Perim", xmLabelWidgetClass, dialog,
-					   XmNlabelString, str,
-					   NULL);
-        XmStringFree(str);
+        arealab = CreateLabel(dialog, "[    Area    ]");
+	perimlab = CreateLabel(dialog, "[    Perim    ]");
 
 	CreateSeparator(dialog);
 
 	CreateCommandButtons(dialog, 3, but3, label3);
-	XtAddCallback(but3[0], XmNactivateCallback, (XtCallbackProc) do_select_area, (XtPointer) NULL);
-	XtAddCallback(but3[1], XmNactivateCallback, (XtCallbackProc) do_select_peri, (XtPointer) NULL);
-	XtAddCallback(but3[2], XmNactivateCallback, (XtCallbackProc) destroy_dialog, (XtPointer) top);
+	AddButtonCB(but3[0], do_select_area, (void *) NULL);
+	AddButtonCB(but3[1], do_select_peri, (void *) NULL);
+	AddButtonCB(but3[2], destroy_dialog_cb, (void *) top);
 
 	ManageChild(dialog);
     }
@@ -219,7 +202,7 @@ void create_area_frame(void *data)
 static Widget *reporton_region_item;
 static Widget *reporton_type_item;
 
-static void do_reporton_region(Widget w, XtPointer client_data, XtPointer call_data)
+static void do_reporton_region(void *client_data)
 {
     int regno = (int) GetChoice(reporton_region_item);
     int type = (int) GetChoice(reporton_type_item);
@@ -237,9 +220,9 @@ void create_reporton_frame(void *data)
 	char *label1[2];
 	label1[0] = "Accept";
 	label1[1] = "Close";
-	top = XmCreateDialogShell(app_shell, "Report on sets in region", NULL, 0);
+	top = CreateDialogShell(app_shell, "Report on sets in region");
 	handle_close(top);
-	dialog = XmCreateRowColumn(top, "dialog_rc", NULL, 0);
+	dialog = CreateDialogRC(top);
 
 	reporton_region_item = CreatePanelChoice(dialog,
 						   "Report on sets in region:",
@@ -256,8 +239,8 @@ void create_reporton_frame(void *data)
 	CreateSeparator(dialog);
 
 	CreateCommandButtons(dialog, 2, but1, label1);
-	XtAddCallback(but1[0], XmNactivateCallback, (XtCallbackProc) do_reporton_region, (XtPointer) NULL);
-	XtAddCallback(but1[1], XmNactivateCallback, (XtCallbackProc) destroy_dialog, (XtPointer) top);
+	AddButtonCB(but1[0], do_reporton_region, (void *) NULL);
+	AddButtonCB(but1[1], destroy_dialog_cb, (void *) top);
 
 	ManageChild(dialog);
     }
@@ -267,12 +250,7 @@ void create_reporton_frame(void *data)
 
 static void set_status_label(Widget w, char *buf)
 {
-    Arg al;
-    XmString ls;
-    ls = XmStringCreateLocalized(buf);
-    XtSetArg(al, XmNlabelString, ls);
-    XtSetValues(w, &al, 1);
-    XmStringFree(ls);
+    SetLabel(w, buf);
 }
 
 
@@ -284,7 +262,7 @@ void clear_status(void)
     }
 }
 
-void update_status_popup(Widget w, XtPointer client_data, XtPointer call_data)
+void update_status_popup(void *client_data)
 {
     int rno;
     if (status_frame) {
@@ -310,65 +288,34 @@ void define_status_popup(void *data)
         int i;
         Widget wbut, rc, rc3, fr2;
 
-	status_frame = XmCreateDialogShell(app_shell, "Status", NULL, 0);
+	status_frame = CreateDialogShell(app_shell, "Status");
 	handle_close(status_frame);
 
-	status_panel = XmCreateForm(status_frame, "form", NULL, 0);
+	status_panel = CreateDialogRC(status_frame);
 
-	status_sw = XtVaCreateManagedWidget("sw",
-	    xmScrolledWindowWidgetClass, status_panel,
-	    XmNscrollingPolicy, XmAUTOMATIC,
-	    XmNheight, 200,
-	    XmNwidth, 200,
-	    NULL);
-	rc3 = XmCreateRowColumn(status_sw, "rc3", NULL, 0);
-	header_w = XtVaCreateManagedWidget("header", xmLabelWidgetClass, rc3,
-	    XmNalignment, XmALIGNMENT_BEGINNING,
-	    XmNrecomputeSize, True,
-	    NULL);
+	rc3 = CreateScrolledVContainer(status_panel, 200);
+	header_w = CreateLabel(rc3, "");
 	SetFixedFont(header_w);
         labx = (Widget *)xmalloc( MAXREGION*sizeof(Widget) );
 	for (i = 0; i < MAXREGION; i++) {
-            labx[i] = XtVaCreateManagedWidget("labx", xmLabelWidgetClass, rc3,
-		XmNalignment, XmALIGNMENT_BEGINNING,
-		XmNrecomputeSize, True,
-		NULL);
+            labx[i] = CreateLabel(rc3, "");
             SetFixedFont(labx[i]);
         }
-        ManageChild(rc3);
-	XtVaSetValues(status_sw, XmNworkWindow, rc3, NULL);
 
 	fr2 = CreateFrame(status_panel, NULL);
-	rc = XmCreateRowColumn(fr2, "rc", NULL, 0);
-	XtVaSetValues(rc, XmNorientation, XmHORIZONTAL, NULL);
+	rc = CreateHContainer(fr2);
 
-	wbut = XtVaCreateManagedWidget("Close", xmPushButtonWidgetClass, rc,
-				       NULL);
-	XtAddCallback(wbut, XmNactivateCallback, (XtCallbackProc) destroy_dialog, status_frame);
+	wbut = CreateButton(rc, "Close");
+	AddButtonCB(wbut, destroy_dialog_cb, (void *) status_frame);
 
-	wbut = XtVaCreateManagedWidget("Update", xmPushButtonWidgetClass, rc,
-				       NULL);
-	XtAddCallback(wbut, XmNactivateCallback, (XtCallbackProc) update_status_popup, NULL);
+	wbut = CreateButton(rc, "Update");
+	AddButtonCB(wbut, update_status_popup, (void *) NULL);
 
-	ManageChild(rc);
-
-	XtVaSetValues(status_sw,
-		      XmNtopAttachment, XmATTACH_FORM,
-		      XmNleftAttachment, XmATTACH_FORM,
-		      XmNrightAttachment, XmATTACH_FORM,
-		      XmNbottomAttachment, XmATTACH_WIDGET,
-		      XmNbottomWidget, fr2,
-		      NULL);
-	XtVaSetValues(fr2,
-		      XmNleftAttachment, XmATTACH_FORM,
-		      XmNrightAttachment, XmATTACH_FORM,
-		      XmNbottomAttachment, XmATTACH_FORM,
-		      NULL);
 	ManageChild(status_panel);
 
     }
     RaiseWindow(status_frame);
-    update_status_popup(NULL, NULL, NULL);
+    update_status_popup(NULL);
     unset_wait_cursor();
 }
 
