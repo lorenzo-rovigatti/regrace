@@ -61,7 +61,6 @@ void gui_save_project_as(void);
 void gui_fatal_no_display(void);
 
 /* ---- dialogs (fl_dialogs.cpp) ---- */
-void gui_not_ported(const char *what);
 void create_monitor_frame(int force, char *msg);
 
 /* ---- from the Motif event code, kept for fl_events.c ---- */

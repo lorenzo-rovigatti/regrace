@@ -45,53 +45,46 @@ runs on the others. `gracebat` (batch mode) does not need a display.
   Oxy, Plastic), colours (Light, Grace/Motif colours, Dark), GUI font
   (any font known to fontconfig), and whether to remember the GUI
   size. Settings are stored in `~/.config/grace/xmgrace.prefs`.
-* Native file chooser (GTK's when available, FLTK's own otherwise).
+* The file selection boxes have a "Browse..." button opening the
+  desktop's file chooser (GTK's when available, FLTK's own otherwise).
 * Help opens in the desktop's default browser unless
-  `GRACE_HELPVIEWER` is set.
+  `GRACE_HELPVIEWER` is set; F1 gives help on the focused dialog.
 
 ## Status of the port
 
-Working:
+All the dialogs of the Motif GUI are available. They are not
+re-implemented: the original dialog sources (`compwin.c`, `setwin.c`,
+`setappwin.c`, `tickwin.c`, `strwin.c`, `fileswin.c`, `editpwin.c`, ...)
+are compiled unchanged for both toolkits, on top of a toolkit-neutral
+widget API (see below). Only the main window, the canvas, the console,
+the commands window and the About box have separate FLTK versions.
 
-* main window: menu bar, locator bar, tool bar, status bar (all
-  toggleable), fixed and free (`-free`) page layouts;
-* canvas: rendering of all plot elements (Type 1 fonts with
-  antialiasing, fill patterns, line styles, arcs), focus markers,
-  rubber-band lines/boxes, crosshair, all mouse actions of the
-  original (zoom, zoom X/Y, viewport, move/copy/delete objects, legend
-  and timestamp placement, point tracking, regions, ...), double-click
-  shortcuts, canvas keyboard shortcuts (Ctrl+A, Ctrl+Z, ...);
-* tool bar: draw, zoom, autoscale, expand/shrink, scrolling, autoticks,
-  autoscale on set, zoom/autoscale along X/Y, world stack;
-* File: new, open, save, save as, revert, print (with the current
-  device settings), exit;
-* Data → Import → ASCII (single set or NXY, set type, source,
-  autoscale);
-* Window → Commands (full command language with history: add,
-  delete, replace, reorder, read/save, replay);
-* Window → Console, error and yes/no dialogs;
-* Help menu, examples, About;
-* real-time input (`-pipe`, `-npipe`), hot-link refresh (Ctrl+U).
+Tested so far (Linux, X11):
 
-Tested so far (Linux, X11): rendering of the examples, rubber-band
-zoom, tool bar, menus, double-click on an axis, the Commands window,
-`-npipe` input, GUI scaling, the GUI appearance dialog, free page
-layout, batch mode without a display, `configure && make && make
-install` from a clean tree. The other canvas actions use the original
-event code unchanged but have not been exercised systematically yet;
-printing was not tested (the default print command sends the job to
-`lp`).
+* rendering of the examples, rubber-band zoom, tool bar, menus,
+  double-click on an axis, GUI scaling and the GUI appearance dialog,
+  free page layout, `-npipe` input, batch mode without a display;
+* every dialog of the menus opens and lays out correctly (all 47 at
+  once, without errors);
+* Data sets (statistics table), the spreadsheet editor (opening it by
+  double-clicking a set, editing a cell), the Commands window;
+* `configure && make && make install` from a clean tree, and the Motif
+  build (`--with-gui=motif`) from the same sources.
 
-Not ported yet (they show a "not yet ported" notice; the same
-operations are available through the command language in Window →
-Commands, or through parameter files):
+Not tested systematically yet: the actual computations behind each
+dialog (they are the original code), printing (the default print
+command sends the job to `lp`), netCDF import (built only with
+`--enable-netcdf`).
 
-* Print/Page setup and the per-device option dialogs;
-* the Edit, Data (except Import ASCII) and Plot dialogs: data sets,
-  set operations, transformations, fits, feature extraction, plot /
-  graph / set / axis appearance, preferences, regions, hot links,
-  locator properties, parameter load/save;
-* point explorer, drawing objects, font tool, spreadsheet editor.
+Differences from the Motif GUI:
+
+* the file selection box keeps the Motif layout (filter, file list,
+  selection, the dialog's own options) and adds a "Browse..." button
+  that opens the desktop's file chooser;
+* the data source of Data/Import/ASCII is an option menu instead of a
+  pair of radio buttons (in both GUIs);
+* help opens in the desktop's default browser unless `GRACE_HELPVIEWER`
+  is set; F1 shows the help for the dialog under the keyboard focus.
 
 ## How the code is organised
 
@@ -100,41 +93,49 @@ GUI turned out to be small (about 15 functions such as `update_all()`,
 `errwin()`, `yesnowin()`, `set_title()`), plus the "X11" screen
 driver.
 
-New files, all in `src/`:
+The dialogs are written against the widget API of `motifinc.h`
+(`CreateDialogForm`, `CreateFrame`, `CreateToggleButton`,
+`CreateOptionChoice`, `CreateSetChoice`, `CreateAACDialog`, ...):
+
+| file | contents |
+|---|---|
+| `motifutils.c` | the API on Motif (as in Grace 5.1.25) |
+| `fl_motifutils.cpp` | the API on FLTK: a tree of widgets mirroring the Motif hierarchy, laid out automatically from the natural sizes of the widgets, as Motif does |
+| `guiutils.c` | the parts that only use the API (set/graph selectors and their popup menus, color/font/format choices, ...), shared by both |
+
+A few helpers were added to the API so that no dialog calls Xm/Xt/Xbae
+directly any more: `IsManaged`, `IsSensitive`,
+`CreateScrolledVContainer`, `SetTextCursorPos`, `GetTextItemString`,
+`CreateDialogShell`, `CreateDialogRC`, `CreateColumnGrid`,
+`AddDialogFormBottomChild`, simple string tables (`CreateTable`, ...)
+and callback-driven spreadsheets (`CreateSpreadSheet`, ...).
+
+FLTK-specific files, all in `src/`:
 
 | file | replaces | contents |
 |---|---|---|
 | `fl_mainwin.cpp` | `xmgrace.c`, part of `xutil.c` | main window, menus, tool bar, cursors, real-time input |
 | `fl_drv.cpp` | `x11drv.c`, part of `xutil.c` | canvas widget, screen driver, XOR-style overlays |
 | `fl_events.c` | `events.c` | canvas event handling (same logic, toolkit-neutral input) |
-| `fl_dialogs.cpp` | `monwin.c`, `comwin.c`, parts of `fileswin.c`, `helpwin.c`, `motifutils.c` | the dialogs ported so far, GUI appearance |
-| `fl_stubs.c` | the remaining `*win.c` | placeholders for dialogs not yet ported |
+| `fl_motifutils.cpp` | `motifutils.c` | the widget API |
+| `fl_fontwin.cpp` | `fontwin.c` | font tool (glyph table) |
+| `fl_dialogs.cpp` | `monwin.c`, `comwin.c`, `helpwin.c` | console, commands, about/help, yes/no, GUI appearance |
 | `fl_gui.h`, `fl_widgets.h`, `fl_files.h` | | internal headers |
 
-Changes to existing files are limited to the build system
-(`ac-tools/configure.in`, `ac-tools/Make.conf.in`,
-`ac-tools/config.h.in`, `src/Make.common`, `src/Makefile`, the new
-`fltkbuild/Makefile`) and to a few `#ifdef`s that keep Motif-only
-declarations out of the FLTK build (`xprotos.h`, `x11drv.h`,
-`events.h`, `buildinfo.c`, and the device setup dialogs in `psdrv.c`,
-`pdfdrv.c`, `rstdrv.c`). The Motif GUI is still selectable with
-`--with-gui=motif`.
+Changes to the core are limited to the build system and to a few
+`#ifdef`s keeping Motif-only declarations out of the FLTK build. The
+Motif GUI is still selectable with `--with-gui=motif`.
 
 The screen device keeps the name "X11" so that parameter files and
 scripts work unchanged.
 
+For automated tests, `GRACE_FLTK_OPEN="Plot/Axis properties...;Edit/Data sets..."`
+opens the given menu entries at startup.
+
 ## Next steps
 
-Most Motif dialogs are built through the helper layer in
-`motifutils.c` (`CreateToggleButton`, `CreateSpinChoice`,
-`CreateSetChoice`, `CreateAACDialog`, ...): about 1900 of the 2300
-widget calls in the dialog files go through it. Re-implementing that
-helper API on top of FLTK will let most `*win.c` dialogs (and the
-device option dialogs in the drivers) be brought over with small,
-mechanical changes; the spreadsheet editor needs an `Fl_Table`-based
-replacement for Xbae.
-
-Possible later improvements: antialiased lines on the canvas (build
-FLTK with Cairo, which needs cairo development files), and extended
-colour handling (colour maps, transparency for PDF/SVG output) as an
-opt-in extension of the project file format.
+* antialiased lines on the canvas (FLTK can draw through Cairo when it
+  is available at build time);
+* extended colour handling (colour maps, transparency for PDF/SVG
+  output) as an opt-in extension of the project file format;
+* a pass over each dialog to check the computations end to end.

@@ -129,14 +129,6 @@ static int choose_file(int save, const char *title, const char *filter,
     }
 }
 
-extern "C" void gui_not_ported(const char *what)
-{
-    fl_message_title("Grace: not yet ported");
-    fl_message("The \"%s\" dialog has not been ported to the FLTK interface yet.\n\n"
-        "Meanwhile, you can use the equivalent commands of the Grace command\n"
-        "language in Window/Commands, or load a parameter file.", what);
-}
-
 /* ------------------------------------------------------------------ */
 /* console */
 
