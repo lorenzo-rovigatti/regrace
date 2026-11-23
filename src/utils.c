@@ -57,6 +57,14 @@
 #  include <sys/select.h>
 #endif
 #include <limits.h>
+#include <sys/stat.h>
+#ifdef __APPLE__
+#  include <mach-o/dyld.h>
+#endif
+
+#ifndef PATH_MAX
+#  define PATH_MAX 4096
+#endif
 
 #ifdef HAVE_SETLOCALE
 #  include <locale.h>
@@ -1057,6 +1065,115 @@ char *get_grace_home(void)
 void set_grace_home(const char *dir)
 {
     strncpy(grace_home, dir, GR_MAXPATHLEN - 1);
+}
+
+/*
+ * Find the absolute, symlink-free path of the running executable.
+ * Uses the OS when it can tell, otherwise argv[0] (searched in $PATH
+ * if it has no slash). Returns RETURN_SUCCESS on success.
+ */
+static int get_exe_path(const char *argv0, char *exe)
+{
+    char buf[PATH_MAX];
+    
+#if defined(__linux__)
+    if (realpath("/proc/self/exe", exe) != NULL) {
+        return RETURN_SUCCESS;
+    }
+#elif defined(__APPLE__)
+    uint32_t size = sizeof(buf);
+    if (_NSGetExecutablePath(buf, &size) == 0 && realpath(buf, exe) != NULL) {
+        return RETURN_SUCCESS;
+    }
+#endif
+
+    if (argv0 == NULL || argv0[0] == '\0') {
+        return RETURN_FAILURE;
+    }
+    
+    if (strchr(argv0, '/') != NULL) {
+        if (realpath(argv0, exe) != NULL) {
+            return RETURN_SUCCESS;
+        }
+    } else {
+        char *path = getenv("PATH"), *p, *colon;
+        size_t len;
+        
+        if (path == NULL) {
+            return RETURN_FAILURE;
+        }
+        for (p = path; ; p = colon + 1) {
+            colon = strchr(p, ':');
+            len = colon ? (size_t) (colon - p) : strlen(p);
+            if (len == 0) {
+                /* an empty element means the current directory */
+                strcpy(buf, ".");
+                len = 1;
+            } else if (len < sizeof(buf)) {
+                memcpy(buf, p, len);
+                buf[len] = '\0';
+            } else {
+                len = 0;
+            }
+            if (len && len + 1 + strlen(argv0) < sizeof(buf)) {
+                strcat(buf, "/");
+                strcat(buf, argv0);
+                if (access(buf, X_OK) == 0 && realpath(buf, exe) != NULL) {
+                    return RETURN_SUCCESS;
+                }
+            }
+            if (colon == NULL) {
+                break;
+            }
+        }
+    }
+    
+    return RETURN_FAILURE;
+}
+
+/*
+ * Set the Grace home from the location of the executable, so that
+ * Grace runs without $GRACE_HOME from the build tree (<tree>/src/xmgrace)
+ * and from an installation moved elsewhere (<home>/bin/xmgrace): in both
+ * cases the home is the parent of the executable's directory. Nothing is
+ * changed (and the compiled-in GRACE_HOME stays) unless the fonts are
+ * found there.
+ */
+int guess_grace_home(const char *argv0)
+{
+    char dir[PATH_MAX], probe[PATH_MAX];
+    char *slash;
+    int i;
+    struct stat statb;
+    
+    if (get_exe_path(argv0, dir) != RETURN_SUCCESS) {
+        return RETURN_FAILURE;
+    }
+    
+    /* strip the executable name and its directory */
+    for (i = 0; i < 2; i++) {
+        slash = strrchr(dir, '/');
+        if (slash == NULL) {
+            return RETURN_FAILURE;
+        }
+        *slash = '\0';
+    }
+    if (dir[0] == '\0') {
+        strcpy(dir, "/");
+    }
+    
+    if (strlen(dir) >= GR_MAXPATHLEN ||
+        strlen(dir) + strlen("/fonts/FontDataBase") >= sizeof(probe)) {
+        return RETURN_FAILURE;
+    }
+    sprintf(probe, "%s/fonts/FontDataBase", dir);
+    if (stat(probe, &statb) != 0 || !S_ISREG(statb.st_mode)) {
+        return RETURN_FAILURE;
+    }
+    
+    set_grace_home(dir);
+    
+    return RETURN_SUCCESS;
 }
 
 /* print command */

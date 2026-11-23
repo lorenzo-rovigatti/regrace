@@ -99,10 +99,13 @@ int main(int argc, char *argv[])
      */
     reset_project_version();
     /*
-     * grace home directory
+     * grace home directory: $GRACE_HOME, else next to the executable,
+     * else the compiled-in one
      */
     if ((s = getenv("GRACE_HOME")) != NULL) {
 	set_grace_home(s);
+    } else {
+        guess_grace_home(argv[0]);
     }
     
     /* define the user's name */
@@ -881,6 +884,7 @@ static void VersionInfo(void)
     fprintf(stdout, "Xbae version: %s\n", bi_gui_xbae());
 #endif
     fprintf(stdout, "T1lib: %s\n", bi_t1lib());
+    fprintf(stdout, "Grace home: %s\n", get_grace_home());
 #ifdef HAVE_FFTW
     fprintf(stdout, "FFT: FFTW\n");
 #else

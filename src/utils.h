@@ -85,6 +85,7 @@ int compare_strings(const char *s1, const char *s2);
 
 char *get_grace_home(void);
 void set_grace_home(const char *dir);
+int guess_grace_home(const char *argv0);
 
 char *get_help_viewer(void);
 void set_help_viewer(const char *dir);

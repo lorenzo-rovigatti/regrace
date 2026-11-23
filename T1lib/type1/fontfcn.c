@@ -70,7 +70,7 @@ extern void T1io_reset( void);
 /***================================================================***/
 static char CurCharName[257]="";
 static char BaseCharName[257]="";
-char CurFontName[120];
+char CurFontName[1024+1];   /* T1_MAXPATHLEN+1: holds a full font file path */
 char *CurFontEnv;
 char *vm_base = NULL;
 

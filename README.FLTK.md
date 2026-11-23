@@ -32,6 +32,13 @@ libXcursor, libXfixes, libXinerama). The bundled FLTK is configured
 automatically by Grace's `configure` (X11 only, no OpenGL, no Wayland)
 and only `libfltk.a` is built; nothing of FLTK gets installed.
 
+`src/xmgrace` can be run directly from the build tree, from any
+directory, and an installed Grace home (`<prefix>/grace`) can be moved
+or copied elsewhere: Grace looks for its fonts, templates and docs in
+`$GRACE_HOME` if set, else in the parent of the executable's directory,
+else in the home given at configure time. `xmgrace -version` shows the
+one in use.
+
 The resulting `xmgrace` depends only on standard X11/system shared
 libraries (check with `ldd`), so a binary built on one node usually
 runs on the others. `gracebat` (batch mode) does not need a display.

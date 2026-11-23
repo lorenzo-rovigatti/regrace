@@ -42,7 +42,7 @@
  */
 
 /* max path length */
-#define GR_MAXPATHLEN 256
+#define GR_MAXPATHLEN 1024
 
 /* max length for strings */
 #define MAX_STRING_LENGTH 512

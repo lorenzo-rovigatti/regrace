@@ -1217,7 +1217,7 @@ int scan_font(FontP)
 {
  
  
-  char   filename[128];
+  char   filename[1024+1];   /* T1_MAXPATHLEN+1, as CurFontName */
   FILE   *fileP;
   char   *nameP;
   int    namelen;
