@@ -459,6 +459,8 @@ static int restore_snapshot(Snapshot *sn)
     noask = TRUE;
     wipeout();
     noask = save_noask;
+    /* ... including the colors (the step lists all it uses)... */
+    initialize_cmap();
     lock_dirtystate(TRUE);
 
     save_version = get_project_version();
@@ -480,9 +482,13 @@ static int restore_snapshot(Snapshot *sn)
     /* ... and the data */
     for (i = 0; i < sn->nsets; i++) {
         SetSnap *ss = &sn->sets[i];
+        /* activateset() shows the set: keep what the parameters said */
+        int hidden = is_valid_setno(ss->gno, ss->setno) &&
+            is_set_hidden(ss->gno, ss->setno);
         if (activateset(ss->gno, ss->setno) != RETURN_SUCCESS) {
             continue;
         }
+        set_set_hidden(ss->gno, ss->setno, hidden);
         set_dataset_type(ss->gno, ss->setno, ss->type);
         setlength(ss->gno, ss->setno, ss->len);
         for (j = 0; j < ss->ncols; j++) {

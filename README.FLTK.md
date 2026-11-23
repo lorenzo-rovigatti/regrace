@@ -76,13 +76,45 @@ appearance changes cost a few kB even with millions of points; with a
 than 10 ms. Undoing restores a step the way a project is loaded. The
 history keeps up to 100 steps and 256 MB.
 
-Because Ctrl+Z is Undo, the canvas shortcut to start a zoom, Ctrl+Z
-in the Motif interface, is Ctrl+Alt+Z. In text fields of dialogs
-Ctrl+Z still undoes the typing.
+The shortcuts also work while a dialog has the keyboard focus, except
+in text fields, where Ctrl+Z still undoes the typing. Because Ctrl+Z is
+Undo, the canvas shortcut to start a zoom, Ctrl+Z in the Motif
+interface, is Ctrl+Alt+Z.
 
 A change made through the command language now also marks the project
 as modified (before, Grace did not warn about unsaved changes made with
 commands).
+
+## Colours
+
+Two dialogs in the Plot menu, available in both GUIs
+(`src/colorwin.c`, with the logic in `src/colormaps.c`):
+
+* **Plot → Colors...**: edits the colour table. Pick a colour, change
+  its name and its red/green/blue values (the swatch previews the
+  result) and Apply, or add the result as a new colour. Changing
+  colour 0 (background) or 1 (foreground) asks first. A **palette**
+  replaces the colours from 2 onwards with a coherent set: Grace (the
+  original colours), Okabe-Ito, Tol bright and Tol muted (all three
+  safe for colour-blind readers) and Tableau 10. Colours 0 and 1 are
+  kept, so the existing sets simply take the new colours.
+* **Plot → Color by value...**: colours the symbols of a set according
+  to the values of one of its columns (e.g. the third column of an
+  x-y-z file), using a colour map (viridis, magma, inferno, plasma,
+  cividis, coolwarm, RdBu, gray, jet), possibly reversed, with 2-128
+  colours, over a linear or logarithmic range (by default the range of
+  the data). The result is a copy of the set, of type XYCOLOR, with
+  filled symbols and no line, optionally hiding the original and
+  adding a colour bar: a narrow graph at the right of the plot with
+  the map and the values on its axis. Applying it again replaces the
+  copy and the colour bar.
+
+Nothing new is stored in project files: the colours sampled from a
+map are ordinary entries of the colour table (named like
+`viridis_64_07`, reused by later operations), the coloured set is an
+XYCOLOR set and the colour bar is a graph with boxes. Projects made
+this way open in any Grace 5.1. The table holds at most 256 colours;
+if a map does not fit, use fewer colours. Both dialogs are undoable.
 
 ## Status of the port
 
@@ -170,6 +202,6 @@ opens the given menu entries at startup.
 
 * antialiased lines on the canvas (FLTK can draw through Cairo when it
   is available at build time);
-* extended colour handling (colour maps, transparency for PDF/SVG
-  output) as an opt-in extension of the project file format;
+* transparency for PDF/SVG output, which would need an opt-in
+  extension of the project file format;
 * a pass over each dialog to check the computations end to end.

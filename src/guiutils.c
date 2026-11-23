@@ -1121,6 +1121,7 @@ void update_all(void)
 
     if (ReqUpdateColorSel == TRUE) {
         update_color_selectors();
+        update_colors_frame();
         ReqUpdateColorSel = FALSE;
     }
 

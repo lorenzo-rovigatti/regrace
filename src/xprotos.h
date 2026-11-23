@@ -165,6 +165,10 @@ void create_props_frame(void *data);
 void create_fonttool(Widget w);
 void create_fonttool_cb(void *data);
 
+void create_colors_frame(void *data);
+void update_colors_frame(void);
+void create_colorbyvalue_frame(void *data);
+
 void set_wait_cursor(void);
 void unset_wait_cursor(void);
 void set_cursor(int c);

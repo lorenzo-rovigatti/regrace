@@ -3597,3 +3597,64 @@ void SpreadSheetCommitEdit(Widget w)
 {
     XbaeMatrixCommitEdit(w, False);
 }
+
+/*
+ * Scale callbacks: called with the new value while dragging too
+ */
+typedef struct {
+    OC_CBProc cbproc;
+    void *anydata;
+} Scale_CBdata;
+
+static void scale_int_cb_proc(Widget w, XtPointer client_data, XtPointer call_data)
+{
+    Scale_CBdata *cbdata = (Scale_CBdata *) client_data;
+    XmScaleCallbackStruct *cbs = (XmScaleCallbackStruct *) call_data;
+    cbdata->cbproc(cbs->value, cbdata->anydata);
+}
+
+void AddScaleCB(Widget w, OC_CBProc cbproc, void *anydata)
+{
+    Scale_CBdata *cbdata = xmalloc(sizeof(Scale_CBdata));
+    cbdata->cbproc = cbproc;
+    cbdata->anydata = anydata;
+    XtAddCallback(w, XmNvalueChangedCallback, scale_int_cb_proc, cbdata);
+    XtAddCallback(w, XmNdragCallback, scale_int_cb_proc, cbdata);
+}
+
+extern Colormap cmap;
+
+/*
+ * A rectangle showing a color
+ */
+Widget CreateColorSwatch(Widget parent, int width, int height)
+{
+    return XtVaCreateManagedWidget("swatch", xmLabelWidgetClass, parent,
+        XmNlabelString, XmStringCreateLocalized(" "),
+        XmNrecomputeSize, False,
+        XmNwidth, (Dimension) width,
+        XmNheight, (Dimension) height,
+        XmNborderWidth, 1,
+        NULL);
+}
+
+void SetColorSwatch(Widget w, int red, int green, int blue)
+{
+    /* the color of the swatch, freed when it changes (PseudoColor) */
+    static Boolean allocated = False;
+    static unsigned long last;
+    XColor xc;
+    
+    xc.red   = red << 8;
+    xc.green = green << 8;
+    xc.blue  = blue << 8;
+    xc.flags = DoRed | DoGreen | DoBlue;
+    if (XAllocColor(disp, cmap, &xc)) {
+        XtVaSetValues(w, XmNbackground, xc.pixel, NULL);
+        if (allocated) {
+            XFreeColors(disp, cmap, &last, 1, 0);
+        }
+        last = xc.pixel;
+        allocated = True;
+    }
+}

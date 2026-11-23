@@ -3245,6 +3245,11 @@ void SetSpinChoice(SpinStructure *spinp, double value)
 
 static void scale_cb(Fl_Widget *w, void *data)
 {
+    GW *g = (GW *) data;
+    int value = (int) rint(((Fl_Value_Slider *) w)->value());
+    for (size_t k = 0; k < g->toggle_cbs.size(); k++) {
+        g->toggle_cbs[k].proc(value, g->toggle_cbs[k].data);
+    }
 }
 
 Widget CreateScale(Widget parent, char *s, int min, int max, int delta)
@@ -3262,8 +3267,8 @@ Widget CreateScale(Widget parent, char *s, int min, int max, int delta)
     set_label(sl, s);
     sl->align(FL_ALIGN_TOP_LEFT);
     sl->textsize(FL_NORMAL_SIZE - 1);
-    sl->callback(scale_cb);
     g = new_leaf(parent, LT_SCALE, sl);
+    sl->callback(scale_cb, g);
     return g;
 }
 
@@ -4642,5 +4647,37 @@ void SpreadSheetCommitEdit(Widget w)
     GSheet *t = sheet_of(w);
     if (t) {
         t->done_edit();
+    }
+}
+
+void AddScaleCB(Widget w, OC_CBProc cbproc, void *anydata)
+{
+    ToggleCB cb = {(TB_CBProc) cbproc, anydata};
+    if (w) {
+        w->toggle_cbs.push_back(cb);
+    }
+}
+
+Widget CreateColorSwatch(Widget parent, int width, int height)
+{
+    Fl_Box *b;
+    GW *g;
+    
+    begin_in(parent);
+    b = new Fl_Box(0, 0, 10, 10);
+    end_in();
+    b->box(FL_DOWN_BOX);
+    b->color(FL_WHITE);
+    g = new_leaf(parent, LT_CUSTOM, b);
+    g->custom_w = width;
+    g->custom_h = height;
+    return g;
+}
+
+void SetColorSwatch(Widget w, int red, int green, int blue)
+{
+    if (w && w->w) {
+        w->w->color(fl_rgb_color(red, green, blue));
+        w->w->redraw();
     }
 }

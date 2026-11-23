@@ -286,6 +286,7 @@ Widget CreateScale(Widget parent, char *s, int min, int max, int delta);
 void SetScaleValue(Widget w, int value);
 int GetScaleValue(Widget w);
 void SetScaleWidth(Widget w, int width);
+void AddScaleCB(Widget w, OC_CBProc cbproc, void *anydata);
 
 Widget CreateCharSizeChoice(Widget parent, char *s);
 double GetCharSizeChoice(Widget w);
@@ -449,6 +450,8 @@ int IsSensitive(Widget w);
 Widget CreateScrolledVContainer(Widget parent, int height);
 void SetTextCursorPos(Widget w, int pos);
 char *GetTextItemString(Widget w);
+Widget CreateColorSwatch(Widget parent, int width, int height);
+void SetColorSwatch(Widget w, int red, int green, int blue);
 Widget CreateDialogShell(Widget parent, char *s);
 Widget CreateDialogRC(Widget shell);
 Widget CreateColumnGrid(Widget parent, int nrows);

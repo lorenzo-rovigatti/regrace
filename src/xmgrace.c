@@ -849,6 +849,9 @@ static Widget CreateMainMenuBar(Widget parent)
     CreateMenuButton(menupane, "Set appearance...", 'S', define_symbols_popup, (void *) -1);
     CreateMenuButton(menupane, "Axis properties...", 'x', create_axes_dialog_cb, NULL);
     CreateMenuSeparator(menupane);
+    CreateMenuButton(menupane, "Colors...", 'C', create_colors_frame, NULL);
+    CreateMenuButton(menupane, "Color by value...", 'v', create_colorbyvalue_frame, NULL);
+    CreateMenuSeparator(menupane);
     CreateMenuButton(menupane, "Load parameters...", 'L', create_rparams_popup, NULL);
     CreateMenuButton(menupane, "Save parameters...", 'S', create_wparam_frame, NULL);
 

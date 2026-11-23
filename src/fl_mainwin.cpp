@@ -595,11 +595,25 @@ static int zoom_event_handler(int event)
     return 0;
 }
 
-/* Ctrl+Y: the other common shortcut of Redo (Ctrl+Shift+Z is in the menu) */
-static int redo_key_handler(int event)
+/*
+ * Undo/redo from any window: FLTK offers a shortcut nobody used only to
+ * the window under the mouse, so the menu bar does not see Ctrl+Z typed
+ * in a dialog (text fields handle it themselves before this). Ctrl+Y is
+ * the other common shortcut of Redo (Ctrl+Shift+Z is in the menu).
+ */
+static int undo_key_handler(int event)
 {
-    if (event == FL_SHORTCUT && Fl::event_key() == 'y' &&
-        Fl::event_state(FL_CTRL) && !Fl::event_state(FL_ALT | FL_SHIFT)) {
+    int key = Fl::event_key();
+
+    if (event != FL_SHORTCUT || !Fl::event_state(FL_CTRL) ||
+        Fl::event_state(FL_ALT | FL_META)) {
+        return 0;
+    }
+    if (key == 'z') {
+        undo_proc(Fl::event_state(FL_SHIFT) ? (void *) 1 : NULL);
+        return 1;
+    }
+    if (key == 'y' && !Fl::event_state(FL_SHIFT)) {
         undo_proc((void *) 1);
         return 1;
     }
@@ -734,6 +748,9 @@ static Fl_Menu_Bar *CreateMainMenuBar(int W)
     m.button("Graph appearance...", 'G', create_graphapp_frame_cb, (void *) -1);
     m.button("Set appearance...", 'S', define_symbols_popup, (void *) -1);
     m.button("Axis properties...", 'x', create_axes_dialog_cb, NULL);
+    m.separator();
+    m.button("Colors...", 'C', create_colors_frame, NULL);
+    m.button("Color by value...", 'v', create_colorbyvalue_frame, NULL);
     m.separator();
     m.button("Load parameters...", 'L', create_rparams_popup, NULL);
     m.button("Save parameters...", 'S', create_wparam_frame, NULL);
@@ -1175,7 +1192,7 @@ extern "C" void startup_gui(void)
     }
 
     Fl::add_handler(zoom_event_handler);
-    Fl::add_handler(redo_key_handler);
+    Fl::add_handler(undo_key_handler);
     
     fl_register_app_shell(main_win);
     fl_install_help_keys();
