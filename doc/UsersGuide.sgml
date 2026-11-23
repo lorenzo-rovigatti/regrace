@@ -940,7 +940,9 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
           <item> Ctrl &lt;Key&gt;T: Place timestamp
           <item> Ctrl &lt;Key&gt;U: Refresh hotlinks
           <item> Ctrl &lt;Key&gt;V: Set the viewport with mouse
-          <item> Ctrl &lt;Key&gt;Z: Zoom
+          <item> Ctrl &lt;Key&gt;Z: Zoom (Motif interface; with the FLTK
+                 interface Ctrl &lt;Key&gt;Z is Undo and zoom is
+                 Ctrl Alt &lt;Key&gt;Z)
           <item> Ctrl Alt &lt;Key&gt;L: Draw a line
           <item> Ctrl Alt &lt;Key&gt;B: Draw a box
           <item> Ctrl Alt &lt;Key&gt;E: Draw an ellipse

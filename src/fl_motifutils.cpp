@@ -79,6 +79,7 @@ extern "C" {
 #include "parser.h"
 #include "protos.h"
 #include "guiutils.h"
+#include "undo.h"
 }
 
 #include "fl_gui.h"
@@ -3562,6 +3563,19 @@ static int help_dispatch(int event, Fl_Window *win)
         dynamic_cast<GWindow *>(win)) {
         help_for(gw_of(Fl::focus() ? Fl::focus() : win));
         return 1;
+    }
+    switch (event) {
+    case FL_PUSH:
+    case FL_RELEASE:
+    case FL_KEYBOARD:
+    case FL_SHORTCUT:
+    case FL_PASTE:
+    case FL_DND_RELEASE:
+        /* a user action: the project may change (see undo.c) */
+        undo_touch();
+        break;
+    default:
+        break;
     }
     return Fl::handle_(event, win);
 }

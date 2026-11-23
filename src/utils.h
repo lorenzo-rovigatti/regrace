@@ -122,6 +122,8 @@ char *get_userhome(void);
 void update_app_title(void);
 
 void set_dirtystate(void);
+unsigned long get_modification_count(void);
+unsigned long get_clean_count(void);
 void clear_dirtystate(void);
 void lock_dirtystate(int flag);
 int is_dirtystate(void);

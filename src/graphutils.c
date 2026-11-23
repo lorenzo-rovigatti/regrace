@@ -44,6 +44,7 @@
 #include "graphs.h"
 #include "graphutils.h"
 #include "protos.h"
+#include "undo.h"
 
 extern char print_file[];
 
@@ -167,6 +168,7 @@ int wipeout(void)
             return 1;
         }
     }
+    undo_reset();
     kill_all_graphs();
     do_clear_lines();
     do_clear_boxes();

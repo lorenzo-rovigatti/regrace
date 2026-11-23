@@ -64,6 +64,8 @@ extern "C" {
 #include "events.h"
 #include "x11drv.h"
 #include "protos.h"
+#include "undo.h"
+#include "parser.h"
 }
 #include "fl_files.h"
 
@@ -278,6 +280,55 @@ static void MenuCB(void *data)
 	break;
     default:
 	break;
+    }
+}
+
+/*
+ * undo/redo
+ */
+static void undo_proc(void *data)
+{
+    int retval;
+    
+    set_wait_cursor();
+    retval = data ? redo() : undo();
+    if (retval == RETURN_SUCCESS) {
+        update_all();
+        xdrawgraph();
+    }
+    unset_wait_cursor();
+}
+
+static void set_menu_item_active(const char *path, int onoff)
+{
+    Fl_Menu_Item *mi = (Fl_Menu_Item *) menu_bar->find_item(path);
+    if (mi) {
+        if (onoff) {
+            mi->activate();
+        } else {
+            mi->deactivate();
+        }
+    }
+}
+
+/* called when the GUI is idle: each user action becomes an undo step */
+static void undo_idle_cb(void *)
+{
+    static int undo_state = -1, redo_state = -1;
+    int u, r;
+    
+    if (!inwin) {
+        return;
+    }
+    undo_checkpoint();
+    
+    u = undo_possible();
+    r = redo_possible();
+    if (u != undo_state || r != redo_state) {
+        set_menu_item_active("&Edit/&Undo", u);
+        set_menu_item_active("&Edit/&Redo", r);
+        undo_state = u;
+        redo_state = r;
     }
 }
 
@@ -544,6 +595,17 @@ static int zoom_event_handler(int event)
     return 0;
 }
 
+/* Ctrl+Y: the other common shortcut of Redo (Ctrl+Shift+Z is in the menu) */
+static int redo_key_handler(int event)
+{
+    if (event == FL_SHORTCUT && Fl::event_key() == 'y' &&
+        Fl::event_state(FL_CTRL) && !Fl::event_state(FL_ALT | FL_SHIFT)) {
+        undo_proc((void *) 1);
+        return 1;
+    }
+    return 0;
+}
+
 /* ------------------------------------------------------------------ */
 
 extern "C" void create_gui_prefs_frame(void *data);
@@ -581,6 +643,11 @@ static Fl_Menu_Bar *CreateMainMenuBar(int W)
  * Edit menu
  */
     m.push("Edit", 'E');
+
+    /* new in the FLTK GUI */
+    m.button("Undo", 'U', undo_proc, (void *) 0, FL_CTRL + 'z');
+    m.button("Redo", 'R', undo_proc, (void *) 1, FL_CTRL + FL_SHIFT + 'z');
+    m.separator();
 
     m.button("Data sets...", 'D', create_datasetprop_popup, NULL);
     m.button("Set operations...", 'o', create_setop_popup, NULL);
@@ -970,7 +1037,8 @@ extern "C" int initialize_gui(int *argc, char **argv)
 /*
  * GRACE_FLTK_OPEN="Plot/Plot appearance...;Edit/Data sets..." activates
  * the given menu entries at startup (mnemonics are ignored). Used to test
- * the dialogs without user interaction.
+ * the dialogs without user interaction. Entries "cmd:..." are commands
+ * of the Grace language.
  */
 static std::string strip_amp(const char *s)
 {
@@ -1002,6 +1070,16 @@ static void open_menu_items_from_env(void)
         path = list.substr(start, end - start);
         start = end + 1;
         if (path.empty()) {
+            continue;
+        }
+        /* let the GUI go idle between the steps, as between user actions */
+        Fl::check();
+        if (path.compare(0, 4, "cmd:") == 0) {
+            /* a command of the Grace language */
+            scanner((char *) path.substr(4).c_str());
+            /* as the Enter key in the Commands window */
+            undo_touch();
+            Fl::check();
             continue;
         }
         for (int i = 0; i < menu_bar->size(); i++) {
@@ -1097,10 +1175,12 @@ extern "C" void startup_gui(void)
     }
 
     Fl::add_handler(zoom_event_handler);
+    Fl::add_handler(redo_key_handler);
     
     fl_register_app_shell(main_win);
     fl_install_help_keys();
     init_option_menus();
+    Fl::add_check(undo_idle_cb);
 
     if (get_pagelayout() == PAGE_FIXED) {
         unsigned int w, h;
@@ -1268,6 +1348,7 @@ static void xmonitor_rti(int fd, void *ib)
     set_wait_cursor();
 
     monitor_input((Input_buffer *) ib, 1, 1);
+    undo_touch();
 
     unset_wait_cursor();
 }

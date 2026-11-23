@@ -1482,10 +1482,27 @@ void update_app_title(void)
 static int dirtystate = 0;
 static int dirtystate_lock = FALSE;
 
+/* counts all modifications (unlike dirtystate, not reset when saving) */
+static unsigned long modification_count = 0;
+
+unsigned long get_modification_count(void)
+{
+    return modification_count;
+}
+
+/* counts the times the project became unmodified (saved or loaded) */
+static unsigned long clean_count = 0;
+
+unsigned long get_clean_count(void)
+{
+    return clean_count;
+}
+
 void set_dirtystate(void)
 {
     if (dirtystate_lock == FALSE) {
         dirtystate++;
+        modification_count++;
         update_timestamp();
         update_app_title();
 
@@ -1501,6 +1518,7 @@ void set_dirtystate(void)
 
 void clear_dirtystate(void)
 {
+    clean_count++;
     dirtystate = 0;
     dirtystate_lock = FALSE;
     update_app_title();

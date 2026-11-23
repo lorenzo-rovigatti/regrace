@@ -1268,10 +1268,10 @@ void switch_current_graph(int gno)
  *   Ctrl Alt b: draw_box()         Ctrl d: delete_object()
  *   Ctrl Alt e: draw_ellipse()     Ctrl l: place_legend()
  *   Ctrl Alt t: write_string()     Ctrl m: move_object()
- *                                  Ctrl t: place_timestamp()
+ *   Ctrl Alt z: enable_zoom()      Ctrl t: place_timestamp()
  *                                  Ctrl u: refresh_hotlink()
  *                                  Ctrl v: set_viewport()
- *                                  Ctrl z: enable_zoom()
+ * (in the Motif GUI zoom is Ctrl z, which here is Undo)
  * Returns TRUE if the key was handled.
  */
 static void start_action(CanvasAction act)
@@ -1299,6 +1299,9 @@ int canvas_shortcut(int ctrl, int alt, int key)
             break;
         case 't':
             start_action(STR_LOC);
+            break;
+        case 'z':
+            start_action(ZOOM_1ST);
             break;
         default:
             return FALSE;
@@ -1332,9 +1335,6 @@ int canvas_shortcut(int ctrl, int alt, int key)
         break;
     case 'v':
         start_action(VIEW_1ST);
-        break;
-    case 'z':
-        start_action(ZOOM_1ST);
         break;
     default:
         return FALSE;

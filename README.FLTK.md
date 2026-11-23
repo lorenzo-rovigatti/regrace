@@ -57,6 +57,33 @@ runs on the others. `gracebat` (batch mode) does not need a display.
 * Help opens in the desktop's default browser unless
   `GRACE_HELPVIEWER` is set; F1 gives help on the focused dialog.
 
+## Undo and redo
+
+Edit → Undo (Ctrl+Z) and Redo (Ctrl+Shift+Z or Ctrl+Y) go back and
+forth through the changes made to the project: data, appearance, axes, drawing objects, regions, page
+settings, i.e. everything a project file stores. Each user action
+(a dialog's Apply/Accept, a menu entry, a canvas operation, a command
+typed in Window → Commands) is one step. Preferences, print settings
+and other settings not saved in projects are not affected. Opening or
+creating a project starts a new history.
+
+How it works (`src/undo.c`, independent of the toolkit): after each
+user action the state is recorded as the settings text that a project
+file would contain, plus the data columns in memory at full precision.
+Columns that did not change are shared with the previous step, so
+appearance changes cost a few kB even with millions of points; with a
+10^6-point set, recording a step takes about 2 ms and undoing it less
+than 10 ms. Undoing restores a step the way a project is loaded. The
+history keeps up to 100 steps and 256 MB.
+
+Because Ctrl+Z is Undo, the canvas shortcut to start a zoom, Ctrl+Z
+in the Motif interface, is Ctrl+Alt+Z. In text fields of dialogs
+Ctrl+Z still undoes the typing.
+
+A change made through the command language now also marks the project
+as modified (before, Grace did not warn about unsaved changes made with
+commands).
+
 ## Status of the port
 
 All the dialogs of the Motif GUI are available. They are not
