@@ -745,7 +745,7 @@ void svg_puttext(VPoint vp, char *s, int len, int font,
             -tm->cxy, -tm->cyy,
             scaleval(vp.x), scaleval(vp.y));
 
-    fprintf(prstream, escape_specials((unsigned char *) s, len));
+    fputs(escape_specials((unsigned char *) s, len), prstream);
 
     fprintf(prstream, "</text>\n");
 }

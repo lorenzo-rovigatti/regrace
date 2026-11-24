@@ -46,6 +46,8 @@ AC_DEFUN(ACX_GCC_STRENGTH_REDUCE,
 AC_REQUIRE([AC_PROG_CC])
 AC_CACHE_CHECK([for gcc strength-reduce bug], ac_cv_c_gcc_strength_bug,
   AC_TRY_RUN([
+#include <stdlib.h>
+
     int main(void) {
       static int Array[[3]];
       unsigned int B = 3;
@@ -75,6 +77,7 @@ AC_DEFUN(ACX_CHECK_FPU,
 [
 AC_CACHE_CHECK([for FPU arithmetics type], ac_cv_c_fpu_arithmetics_type,
                   AC_TRY_RUN([
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -105,13 +108,15 @@ int main (void)
       	}
     }
  
-    exit(i);
+    /* 11-13, so that a failed compile (status 1) is not taken for an answer */
+    exit(i ? 10 + i : 0);
 }],
     ac_cv_c_fpu_arithmetics_type="Unknown",
     [case "$?" in
-      "1"[)] ac_cv_c_fpu_arithmetics_type="Big endian IEEE" ;;
-      "2"[)] ac_cv_c_fpu_arithmetics_type="Little endian IEEE" ;;
-      "3"[)] ac_cv_c_fpu_arithmetics_type="DEC" ;;
+      "11"[)] ac_cv_c_fpu_arithmetics_type="Big endian IEEE" ;;
+      "12"[)] ac_cv_c_fpu_arithmetics_type="Little endian IEEE" ;;
+      "13"[)] ac_cv_c_fpu_arithmetics_type="DEC" ;;
+      *[)]    ac_cv_c_fpu_arithmetics_type="Unknown" ;;
     esac],
     ac_cv_c_fpu_arithmetics_type="Unknown") )
 
@@ -276,6 +281,7 @@ AC_DEFUN(ACX_CHECK_MOTIF,
     CPPFLAGS="$X_CFLAGS $CPPFLAGS"
     LDFLAGS="$X_LIBS $LDFLAGS"
     AC_TRY_RUN([
+#include <stdlib.h>
 #include <Xm/XmAll.h>
       int main(void) {
         int vlibn, vincn;
@@ -368,6 +374,7 @@ AC_DEFUN(ACX_CHECK_T1LIB,
     ACX_SAVE_STATE
     LIBS="-lt1 -lm $LIBS"
     AC_TRY_RUN([
+#include <stdlib.h>
 #include <string.h>
 #include <t1lib.h>
       int main(void) {
@@ -413,6 +420,7 @@ AC_DEFUN(ACX_CHECK_ZLIB,
     ACX_SAVE_STATE
     LIBS="$acx_cv_zlib_library $LIBS"
     AC_TRY_RUN([
+#include <stdlib.h>
 #include <string.h>
 #include <zlib.h>
       int main(void) {
@@ -462,6 +470,7 @@ AC_DEFUN(ACX_CHECK_JPEG,
     ACX_SAVE_STATE
     LIBS="$acx_cv_jpeg_library $LIBS"
     AC_TRY_RUN([
+#include <stdlib.h>
 #include <stdio.h>
 #include <jpeglib.h>
       int main(void) {
@@ -509,6 +518,7 @@ AC_DEFUN(ACX_CHECK_PNG,
     ACX_SAVE_STATE
     LIBS="$acx_cv_png_library $Z_LIB $LIBS"
     AC_TRY_RUN([
+#include <stdlib.h>
 #include <string.h>
 #include <png.h>
       int main(void) {
@@ -558,6 +568,7 @@ AC_DEFUN(ACX_CHECK_PDFLIB,
     ACX_SAVE_STATE
     LIBS="$acx_cv_pdf_library $JPEG_LIB $PNG_LIB $Z_LIB $LIBS"
     AC_TRY_RUN([
+#include <stdlib.h>
 #include <pdflib.h>
       int main(void) {
         char *vinc;
@@ -610,6 +621,7 @@ AC_DEFUN(ACX_CHECK_NETCDF,
 
 
     AC_TRY_RUN([
+#include <stdlib.h>
 #include <stdio.h>
 #include <netcdf.h>
       int main(void) {
@@ -655,6 +667,7 @@ AC_DEFUN(ACX_CHECK_FFTW,
     ACX_SAVE_STATE
     LIBS="$acx_cv_fftw_library $LIBS"
     AC_TRY_RUN([
+#include <stdlib.h>
 #include <fftw.h>
 #include <string.h>
       int main(void) {
@@ -701,6 +714,7 @@ AC_DEFUN(ACX_CHECK_XMHTML,
     ACX_SAVE_STATE
     LIBS="$acx_cv_xmhtml_library $JPEG_LIB $PNG_LIB $Z_LIB $LIBS"
     AC_TRY_RUN([
+#include <stdlib.h>
 #include <XmHTML/XmHTML.h>
       int main(void) {
         int vlib, vinc;
