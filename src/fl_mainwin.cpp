@@ -84,6 +84,9 @@ extern char batchfile[];
 /* ------------------------------------------------------------------ */
 
 static Fl_Double_Window *main_win = NULL;
+
+/* set once initialize_gui() has opened the display */
+static bool display_open = false;
 static Fl_Flex *main_col = NULL;
 static Fl_Flex *main_row = NULL;
 static Fl_Menu_Bar *menu_bar = NULL;
@@ -1040,6 +1043,7 @@ extern "C" int initialize_gui(int *argc, char **argv)
     }
 #endif
     fl_open_display();
+    display_open = true;
 
     /* numeric I/O must use the C locale */
     setlocale(LC_NUMERIC, "C");
@@ -1379,7 +1383,7 @@ extern "C" void xunregister_rti(XtInputId id)
 
 extern "C" void xregister_rti(Input_buffer *ib)
 {
-    if (main_win != NULL || fl_display != NULL) {
+    if (main_win != NULL || display_open) {
         Fl::add_fd(ib->fd, FL_READ, xmonitor_rti, ib);
         ib->id = (unsigned long) ib->fd;
     }
