@@ -160,7 +160,8 @@ extern double jn ( int n, double x );
 
 #ifndef HAVE_FINITE
 #  define finite isfinite
-#  if !defined(HAVE_ISFINITE_DECL) && !defined(HAVE_ISFINITE_MACRO)
+/* libc++ already supplies the overload in <math.h>. */
+#  if !defined(HAVE_ISFINITE_DECL) && !defined(HAVE_ISFINITE_MACRO) && !defined(_LIBCPP_VERSION)
 extern int isfinite ( double x );
 #  endif
 #else

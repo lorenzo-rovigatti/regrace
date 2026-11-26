@@ -1524,7 +1524,7 @@ void clear_dirtystate(void)
     update_app_title();
 }
 
-void lock_dirtystate(flag)
+void lock_dirtystate(int flag)
 {
     dirtystate_lock = flag;
 }

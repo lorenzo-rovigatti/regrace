@@ -10666,7 +10666,11 @@ fi
 
 fi
 
-if test "$no_x" = yes || test "$gui_type" = none; then
+case "$host_os:$gui_type" in
+  darwin*:fltk) ;; # FLTK uses Cocoa on macOS.
+  *) test "$no_x" = yes && gui_type=none ;;
+esac
+if test "$gui_type" = none; then
   GUI="NONE_GUI"
   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: --> No GUI will be built" >&5
 printf "%s\n" "--> No GUI will be built" >&6; }

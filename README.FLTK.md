@@ -26,7 +26,11 @@ Relevant `configure` options:
 | `--with-gui=none` | command line / batch only |
 | `--without-bundled-fltk` / `--with-fltk-config=PROG` | use an installed FLTK >= 1.4 instead of the bundled one |
 
-Requirements for the FLTK GUI: a C++ compiler and the X11 client
+On macOS the bundled FLTK uses Cocoa/Quartz. For Homebrew PNG and JPEG, pass
+`--with-extra-incpath="$(brew --prefix)/include"` and
+`--with-extra-ldpath="$(brew --prefix)/lib"` to `./configure`.
+
+The Linux FLTK GUI requires a C++ compiler and the X11 client
 libraries and headers (libX11, libXft, fontconfig, libXrender,
 libXcursor, libXfixes, libXinerama). The bundled FLTK is configured
 automatically by Grace's `configure` (X11 only, no OpenGL, no Wayland)

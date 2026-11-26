@@ -644,7 +644,11 @@ GUI_LD='$(CC)'
 fltk_dir=""
 
 AC_PATH_XTRA
-if test "$no_x" = yes || test "$gui_type" = none; then
+case "$host_os:$gui_type" in
+  darwin*:fltk) ;; # FLTK uses Cocoa on macOS.
+  *) test "$no_x" = yes && gui_type=none ;;
+esac
+if test "$gui_type" = none; then
   GUI="NONE_GUI"
   AC_MSG_RESULT(--> No GUI will be built)
 elif test "$gui_type" = fltk; then
