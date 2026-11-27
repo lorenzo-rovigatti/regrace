@@ -84,15 +84,12 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install dependencies
-        # Grace's configure looks for the X11 headers before choosing a
-        # GUI; FLTK itself uses Cocoa
-        run: brew install libx11 libpng jpeg-turbo
+        run: brew install libpng jpeg-turbo
 
       - name: Configure
         run: |
           prefix=$(brew --prefix)
-          ./configure --with-gui=fltk \
-            --x-includes=$prefix/include --x-libraries=$prefix/lib \
+          ./configure --with-gui=fltk --without-x \
             --with-extra-incpath=$prefix/include \
             --with-extra-ldpath=$prefix/lib \
             || { cat config.log; exit 1; }
