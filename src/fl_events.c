@@ -875,7 +875,7 @@ void getpoints(VPoint *vpp)
 /*
  * switch on the area calculator
  */
-void do_select_area(void *client_data)
+void do_select_area(void)
 {
     set_action(DO_NOTHING);
     set_action(COMP_AREA);
@@ -884,7 +884,7 @@ void do_select_area(void *client_data)
 /*
  * switch on the perimeter calculator
  */
-void do_select_peri(void *client_data)
+void do_select_peri(void)
 {
     set_action(DO_NOTHING);
     set_action(COMP_PERIMETER);

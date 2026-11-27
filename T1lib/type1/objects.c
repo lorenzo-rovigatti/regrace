@@ -328,7 +328,7 @@ struct xobject *t1_Allocate(size, template, extra)  /* non-ANSI; type checking w
           function, which was in turn called by Unique(). (PNM)        */
                if (!ISPERMANENT(template->flag))
                    --template->references;
-               memcpy(r, template, size);
+               LONGCOPY(r, template, size);
                r->flag &= ~(ISPERMANENT(ON) | ISIMMORTAL(ON));
        /* added reference field 3-2-6-91 PNM */
                r->references = 1;

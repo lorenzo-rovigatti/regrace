@@ -160,8 +160,9 @@ extern double jn ( int n, double x );
 
 #ifndef HAVE_FINITE
 #  define finite isfinite
-/* libc++ already supplies the overload in <math.h>. */
-#  if !defined(HAVE_ISFINITE_DECL) && !defined(HAVE_ISFINITE_MACRO) && !defined(_LIBCPP_VERSION)
+/* C++ has it in <cmath>, possibly as a template */
+#  if !defined(HAVE_ISFINITE_DECL) && !defined(HAVE_ISFINITE_MACRO) && \
+      !defined(__cplusplus)
 extern int isfinite ( double x );
 #  endif
 #else
@@ -175,6 +176,7 @@ extern int finite ( double x );
 #  define HAVE_ISNAN_MACRO
 #endif
 
-#if !defined(HAVE_ISNAN_DECL) && !defined(HAVE_ISNAN_MACRO)
+#if !defined(HAVE_ISNAN_DECL) && !defined(HAVE_ISNAN_MACRO) && \
+    !defined(__cplusplus)
 extern int isnan ( double x );
 #endif

@@ -967,8 +967,8 @@ static struct segment *CenterStem(edge1, edge2)
   Decrypt - From Adobe Type 1 book page 63, with some modifications
 -----------------------------------------------------------------------*/
 #define KEY 4330 /* Initial key (seed) for CharStrings decryption */
-#define C1 52845 /* Multiplier for pseudo-random number generator */
-#define C2 22719 /* Constant for pseudo-random number generator */
+#define C1 52845u /* Multiplier for pseudo-random number generator */
+#define C2 22719u /* Constant for pseudo-random number generator */
  
 static unsigned short r; /* Pseudo-random sequence of keys */
  
