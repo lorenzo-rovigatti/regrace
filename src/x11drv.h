@@ -5,6 +5,7 @@
  * 
  * Copyright (c) 1996-99 Grace Development Team
  * Copyright (c) 1991-95 Paul J Turner, Portland, OR
+ * Modified in 2026 for regrace; see README.md.
  * 
  * Maintained by Evgeny Stambulchik
  * 

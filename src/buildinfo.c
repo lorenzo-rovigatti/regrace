@@ -1,3 +1,4 @@
+/* Modified in 2026 for regrace; see README.md. */
 /* buildinfo.c */
 
 #include <config.h>
@@ -59,10 +60,10 @@ static void VersionInfo(FILE *outfile)
     fprintf(outfile, "#define BI_VERSION_ID %d\n",
             MAJOR_REV*10000 + MINOR_REV*100 + PATCHLEVEL);
 #ifdef BETA_VER
-    fprintf(outfile, "#define BI_VERSION \"Grace-%d.%d.%d %s\"\n",
+    fprintf(outfile, "#define BI_VERSION \"Grace-%d.%d.%d %s (regrace)\"\n",
 	    MAJOR_REV, MINOR_REV, PATCHLEVEL, BETA_VER);
 #else
-    fprintf(outfile, "#define BI_VERSION \"Grace-%d.%d.%d\"\n",
+    fprintf(outfile, "#define BI_VERSION \"Grace-%d.%d.%d (regrace)\"\n",
 	    MAJOR_REV, MINOR_REV, PATCHLEVEL);
 #endif
 

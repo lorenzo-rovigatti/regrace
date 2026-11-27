@@ -1,3 +1,4 @@
+/* Modified in 2026 for regrace; see README.md. */
 /* $XConsortium: scanfont.c,v 1.9 92/07/07 17:14:56 gildea Exp $ */
 /* Copyright International Business Machines,Corp. 1991
  * All Rights Reserved

@@ -4,6 +4,7 @@
  * Home page: http://plasma-gate.weizmann.ac.il/Grace/
  *
  * Copyright (c) 1996-2000 Grace Development Team
+ * Modified in 2026 for regrace; see README.md.
  *
  *    This program is free software; you can redistribute it and/or modify
  *    it under the terms of the GNU General Public License as published by

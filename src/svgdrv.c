@@ -4,6 +4,7 @@
  * Home page: http://plasma-gate.weizmann.ac.il/Grace/
  * 
  * Copyright (c) 1996-2002 Grace Development Team
+ * Modified in 2026 for regrace; see README.md.
  * 
  * Maintained by Evgeny Stambulchik
  * 

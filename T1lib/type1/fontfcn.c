@@ -1,3 +1,4 @@
+/* Modified in 2026 for regrace; see README.md. */
 /* $XConsortium: fontfcn.c,v 1.8 92/03/27 18:15:45 eswu Exp $ */
 /* Copyright International Business Machines,Corp. 1991
  * All Rights Reserved

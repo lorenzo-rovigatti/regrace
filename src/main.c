@@ -5,6 +5,7 @@
  * 
  * Copyright (c) 1991-1995 Paul J Turner, Portland, OR
  * Copyright (c) 1996-2009 Grace Development Team
+ * Modified in 2026 for regrace; see README.md.
  * 
  * Maintained by Evgeny Stambulchik
  * 
@@ -922,7 +923,11 @@ fprintf(stdout, "PDFlib: %s\n", bi_libpdf());
     
     fprintf(stdout, "(C) Copyright 1991-1995 Paul J Turner\n");
     fprintf(stdout, "(C) Copyright 1996-2015 Grace Development Team\n");
+    fprintf(stdout, "(C) Copyright 2026 Lorenzo Rovigatti (regrace modifications)\n");
     fprintf(stdout, "All Rights Reserved\n");
+    fprintf(stdout, "\nregrace is a modified version of Grace, distributed under the GNU GPL;\n"
+                    "it is not supported by the Grace Development Team.\n"
+                    "See https://github.com/lorenzo-rovigatti/regrace\n");
 
     return;
 }
