@@ -687,6 +687,7 @@ build_os
 build_vendor
 build_cpu
 build
+T1_CFLAGS
 T1_AA_TYPE64
 T1_AA_TYPE32
 T1_AA_TYPE16
@@ -3123,6 +3124,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 ac_config_headers="$ac_config_headers config.h:ac-tools/config.h.in"
+
 
 
 
@@ -9079,6 +9081,10 @@ printf "%s\n" "--> Bundled version of T1lib will be used" >&6; }
   T1_LIB='$(TOP)/T1lib/libt1.a'
   T1_INC='-I$(TOP)/T1lib/t1lib'
   t1lib_dir="T1lib"
+
+      if test "x$GCC" = "xyes"; then
+    T1_CFLAGS="-fno-strict-aliasing"
+  fi
 
 
     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking \"which ANSI integer type is 16 bit\"" >&5

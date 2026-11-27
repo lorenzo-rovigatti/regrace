@@ -49,6 +49,7 @@ dnl **** Those are for T1lib
 AC_SUBST(T1_AA_TYPE16)
 AC_SUBST(T1_AA_TYPE32)
 AC_SUBST(T1_AA_TYPE64)
+AC_SUBST(T1_CFLAGS)
 
 dnl **** define home dir of Grace
 if test "x${prefix}" = "xNONE"
@@ -551,6 +552,12 @@ then
   T1_LIB='$(TOP)/T1lib/libt1.a'
   T1_INC='-I$(TOP)/T1lib/t1lib'
   t1lib_dir="T1lib"
+
+  dnl **** T1lib casts between unrelated structure types: with strict
+  dnl **** aliasing, clang -O2 miscompiles the rasterizer (crashes)
+  if test "x$GCC" = "xyes"; then
+    T1_CFLAGS="-fno-strict-aliasing"
+  fi
 
   dnl **** Check ANSI types
   ACX_ANSI_TYPES

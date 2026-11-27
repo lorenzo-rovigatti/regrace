@@ -60,8 +60,8 @@
 /* #define DEBUG_PFB_BLOCKS  */
 
 /* Constants and variables used in the decryption */
-#define c1 ((unsigned short)52845)
-#define c2 ((unsigned short)22719)
+#define c1 52845u  /* unsigned: the key must wrap, not overflow an int */
+#define c2 22719u
 static unsigned short r;
 static int asc, Decrypt;
 static int extrach;
