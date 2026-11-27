@@ -1103,6 +1103,7 @@ static void open_menu_items_from_env(void)
             Fl::check();
             continue;
         }
+        bool found = false;
         for (int i = 0; i < menu_bar->size(); i++) {
             char buf[1024];
             const Fl_Menu_Item *mi = &menu_bar->menu()[i];
@@ -1123,8 +1124,13 @@ static void open_menu_items_from_env(void)
             }
             if (q == path) {
                 menu_bar->picked(mi);
+                found = true;
                 break;
             }
+        }
+        if (!found) {
+            fprintf(stderr, "GRACE_FLTK_OPEN: no menu entry \"%s\"\n",
+                path.c_str());
         }
         Fl::flush();
     }

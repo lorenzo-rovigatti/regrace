@@ -29,3 +29,6 @@
 /fltk/fltk-config
 /fltk/fltk.list
 /fltk/makeinclude
+
+# test output (tests/*.sh)
+/tests/out/
