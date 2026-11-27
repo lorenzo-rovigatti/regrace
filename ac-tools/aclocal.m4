@@ -45,21 +45,21 @@ AC_DEFUN(ACX_GCC_STRENGTH_REDUCE,
 [
 AC_REQUIRE([AC_PROG_CC])
 AC_CACHE_CHECK([for gcc strength-reduce bug], ac_cv_c_gcc_strength_bug,
-  AC_TRY_RUN([
+  [AC_TRY_RUN([
 #include <stdlib.h>
 
     int main(void) {
-      static int Array[[3]];
+      static int Array@<:@3@:>@;
       unsigned int B = 3;
       int i;
-      for(i=0; i<B; i++) Array[[i]] = i - 3;
-      exit( Array[[1]] != -2 );
+      for(i=0; i<B; i++) Array@<:@i@:>@ = i - 3;
+      exit( Array@<:@1@:>@ != -2 );
     }
     ],
 
     ac_cv_c_gcc_strength_bug="no",
     ac_cv_c_gcc_strength_bug="yes",
-    ac_cv_c_gcc_strength_bug="yes")
+    ac_cv_c_gcc_strength_bug="yes")]
   )
   
   if test "$ac_cv_c_gcc_strength_bug" = "yes"
