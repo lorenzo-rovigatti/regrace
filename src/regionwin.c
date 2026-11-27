@@ -50,6 +50,8 @@ extern int regiontype;	/* in regionutils.c */
 
 static void do_define_region(void *client_data);
 static void do_clear_region(void *client_data);
+static void select_area_cb(void *client_data);
+static void select_peri_cb(void *client_data);
 
 
 static Widget *define_region_item;
@@ -169,6 +171,16 @@ void create_clear_frame(void *data)
 
 Widget arealab, perimlab;
 
+static void select_area_cb(void *client_data)
+{
+    do_select_area();
+}
+
+static void select_peri_cb(void *client_data)
+{
+    do_select_peri();
+}
+
 void create_area_frame(void *data)
 {
     static Widget top, dialog;
@@ -189,8 +201,8 @@ void create_area_frame(void *data)
 	CreateSeparator(dialog);
 
 	CreateCommandButtons(dialog, 3, but3, label3);
-	AddButtonCB(but3[0], do_select_area, (void *) NULL);
-	AddButtonCB(but3[1], do_select_peri, (void *) NULL);
+	AddButtonCB(but3[0], select_area_cb, (void *) NULL);
+	AddButtonCB(but3[1], select_peri_cb, (void *) NULL);
 	AddButtonCB(but3[2], destroy_dialog_cb, (void *) top);
 
 	ManageChild(dialog);

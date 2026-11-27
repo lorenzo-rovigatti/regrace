@@ -196,7 +196,23 @@ The screen device keeps the name "X11" so that parameter files and
 scripts work unchanged.
 
 For automated tests, `GRACE_FLTK_OPEN="Plot/Axis properties...;Edit/Data sets..."`
-opens the given menu entries at startup.
+opens the given menu entries at startup; entries `cmd:...` run commands
+of the Grace language (e.g. `cmd:exit`). With it set, unknown menu
+entries and the errors shown in the Console are also written to stderr.
+
+## Tests
+
+From the top of a built tree:
+
+    tests/batch.sh                # every example with gracebat to PS, EPS, SVG, PNG
+    xvfb-run -a tests/gui.sh      # every example on the canvas, then every dialog
+
+Both fail on a crash, a hang, a non-zero exit status or any error
+message, and leave their output in `tests/out/`. `tests/gui.sh` needs a
+display (Xvfb on a headless machine). GitHub Actions
+(`.github/workflows/ci.yml`) builds with gcc and clang on Linux
+(x86-64 and arm64, FLTK, Motif and no GUI), with ASan/UBSan, and on
+macOS (Cocoa), and runs both tests.
 
 ## Next steps
 

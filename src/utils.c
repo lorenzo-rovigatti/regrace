@@ -79,7 +79,7 @@
 
 static void rereadConfig(void);
 static RETSIGTYPE actOnSignal(int signo);
-static void bugwarn(char *signame);
+static void bugwarn(const char *signame);
 
 /*
  * free and check for NULL pointer
@@ -382,7 +382,7 @@ static void please_report_the_bug(void)
 /*
  * Warn about bug (TODO X message)
  */
-static void bugwarn(char *signame)
+static void bugwarn(const char *signame)
 {
     static int emergency_save = FALSE;
 /*
@@ -429,8 +429,6 @@ static void bugwarn(char *signame)
  
 static RETSIGTYPE actOnSignal(int signo)
 {
-    char signame[16];
-     
     installSignal();
     
     switch (signo) {
@@ -452,26 +450,29 @@ static RETSIGTYPE actOnSignal(int signo)
         break;
 #ifdef SIGILL
     case SIGILL:
-        strcpy(signame, "SIGILL");
+        bugwarn("SIGILL");
+        break;
 #endif
 #ifdef SIGFPE
     case SIGFPE:
-        strcpy(signame, "SIGFPE");
+        bugwarn("SIGFPE");
+        break;
 #endif
 #ifdef SIGBUS
     case SIGBUS:
-        strcpy(signame, "SIGBUS");
+        bugwarn("SIGBUS");
+        break;
 #endif
 #ifdef SIGSEGV
     case SIGSEGV:
-        strcpy(signame, "SIGSEGV");
+        bugwarn("SIGSEGV");
+        break;
 #endif
 #ifdef SIGSYS
     case SIGSYS:
-        strcpy(signame, "SIGSYS");
-#endif
-        bugwarn(signame);
+        bugwarn("SIGSYS");
         break;
+#endif
     default:
         break;
     }
@@ -1524,7 +1525,7 @@ void clear_dirtystate(void)
     update_app_title();
 }
 
-void lock_dirtystate(flag)
+void lock_dirtystate(int flag)
 {
     dirtystate_lock = flag;
 }

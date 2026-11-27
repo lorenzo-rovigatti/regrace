@@ -220,6 +220,11 @@ extern "C" void errwin(const char *msg)
     buf = concat_strings(buf, msg);
     buf = concat_strings(buf, "\n");
 
+    /* in automated GUI tests (see fl_mainwin.cpp), let the caller see it */
+    if (getenv("GRACE_FLTK_OPEN") != NULL) {
+        fputs(buf, stderr);
+    }
+
     create_monitor_frame(TRUE, buf);
 
     xfree(buf);

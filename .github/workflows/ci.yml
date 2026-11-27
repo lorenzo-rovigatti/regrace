@@ -1,0 +1,115 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux:
+    name: ${{ matrix.os }} / ${{ matrix.cc }} / gui=${{ matrix.gui }}${{ matrix.sanitize && ' / sanitizers' || '' }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-24.04,     cc: gcc,   cxx: g++,     gui: fltk }
+          - { os: ubuntu-24.04,     cc: clang, cxx: clang++, gui: fltk }
+          - { os: ubuntu-22.04,     cc: gcc,   cxx: g++,     gui: fltk }
+          - { os: ubuntu-24.04-arm, cc: gcc,   cxx: g++,     gui: fltk }
+          - { os: ubuntu-24.04,     cc: gcc,   cxx: g++,     gui: motif }
+          - { os: ubuntu-24.04,     cc: gcc,   cxx: g++,     gui: none }
+          - { os: ubuntu-24.04,     cc: clang, cxx: clang++, gui: fltk, sanitize: true }
+    env:
+      CC: ${{ matrix.cc }}
+      CXX: ${{ matrix.cxx }}
+      # also for the test programs of configure, which don't free memory
+      ASAN_OPTIONS: detect_leaks=0
+      UBSAN_OPTIONS: print_stacktrace=1
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            ${{ matrix.cc == 'clang' && 'clang' || '' }} \
+            libx11-dev libxft-dev libfontconfig1-dev libxrender-dev \
+            libxcursor-dev libxfixes-dev libxinerama-dev libxext-dev \
+            libpng-dev libjpeg-dev zlib1g-dev \
+            xvfb x11-utils imagemagick \
+            ${{ matrix.gui == 'motif' && 'libmotif-dev libxmu-dev libxpm-dev libxt-dev' || '' }}
+
+      - name: Configure
+        run: |
+          if [ "${{ matrix.sanitize }}" = true ]; then
+            flags="-O1 -g -fsanitize=address,undefined -fno-sanitize=shift-base -fno-omit-frame-pointer"
+            export CFLAGS="$flags" CXXFLAGS="$flags" LDFLAGS="-fsanitize=address,undefined"
+          fi
+          ./configure --with-gui=${{ matrix.gui }} || { cat config.log; exit 1; }
+
+      - name: Build
+        run: make -j$(nproc)
+
+      - name: Install (staged)
+        run: make install DESTDIR=$PWD/stage
+
+      - name: Batch test
+        run: tests/batch.sh
+
+      - name: GUI test
+        if: matrix.gui == 'fltk'
+        run: xvfb-run -a -s "-screen 0 1600x1200x24" tests/gui.sh
+
+      - name: Upload test output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: output-${{ matrix.os }}-${{ matrix.cc }}-${{ matrix.gui }}${{ matrix.sanitize && '-sanitize' || '' }}
+          path: tests/out
+          if-no-files-found: ignore
+
+  macos:
+    name: ${{ matrix.os }} / clang / gui=fltk (Cocoa)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        # Grace's configure looks for the X11 headers before choosing a
+        # GUI; FLTK itself uses Cocoa
+        run: brew install libx11 libpng jpeg-turbo
+
+      - name: Configure
+        run: |
+          prefix=$(brew --prefix)
+          ./configure --with-gui=fltk \
+            --x-includes=$prefix/include --x-libraries=$prefix/lib \
+            --with-extra-incpath=$prefix/include \
+            --with-extra-ldpath=$prefix/lib \
+            || { cat config.log; exit 1; }
+
+      - name: Build
+        run: make -j$(sysctl -n hw.ncpu)
+
+      - name: Batch test
+        run: tests/batch.sh
+
+      - name: GUI test
+        run: tests/gui.sh
+
+      - name: Upload test output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: output-${{ matrix.os }}
+          path: tests/out
+          if-no-files-found: ignore

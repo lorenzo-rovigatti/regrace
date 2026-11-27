@@ -892,7 +892,9 @@ static CompositeString *String2Composite(char *string, int *nss)
 	        csbuf[*nss].gotomark = gotomark;
 
 	        csbuf[*nss].s = xmalloc(isub*SIZEOF_CHAR);
-	        memcpy(csbuf[*nss].s, ss, isub);
+	        if (isub > 0) {	/* xmalloc(0) gives NULL */
+	            memcpy(csbuf[*nss].s, ss, isub);
+	        }
 	        csbuf[*nss].len = isub;
 	        isub = 0;
 	
