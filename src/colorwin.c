@@ -1,7 +1,7 @@
 /*
  * Grace - GRaphing, Advanced Computation and Exploration of data
  *
- * Copyright (c) 1996-2000 Grace Development Team
+ * Written in 2026 for regrace; see README.md.
  *
  *    This program is free software; you can redistribute it and/or modify
  *    it under the terms of the GNU General Public License as published by

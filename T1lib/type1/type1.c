@@ -1,3 +1,4 @@
+/* Modified in 2026 for regrace; see README.md. */
 /* $XConsortium: type1.c,v 1.5 91/10/10 11:20:06 rws Exp $ */
 /* Copyright International Business Machines, Corp. 1991
  * All Rights Reserved

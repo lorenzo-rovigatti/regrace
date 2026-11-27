@@ -5,6 +5,7 @@
  *
  * Copyright (c) 1991-1995 Paul J Turner, Portland, OR
  * Copyright (c) 1996-2000 Grace Development Team
+ * Modified in 2026 for regrace; see README.md.
  *
  *    This program is free software; you can redistribute it and/or modify
  *    it under the terms of the GNU General Public License as published by
@@ -522,6 +523,10 @@ extern "C" void create_about_grtool(void *data)
         s += "All rights reserved\n";
         s += "The program is distributed under the terms of the "
              "GNU General Public License\n\n";
+        s += "regrace modifications: Copyright (c) 2026 Lorenzo Rovigatti\n";
+        s += "regrace is a modified version of Grace, not supported by the\n"
+             "Grace Development Team: "
+             "https://github.com/lorenzo-rovigatti/regrace\n\n";
         s += "Third party copyrights:\n";
         s += "  FLTK, Copyright (c) 1998-2026 Bill Spitzak and others\n";
         s += "  Raster driver based on the GD-1.3 library,\n";

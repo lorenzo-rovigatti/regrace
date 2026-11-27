@@ -1,3 +1,4 @@
+/* Modified in 2026 for regrace; see README.md. */
 /* $XConsortium: t1io.c,v 1.4 91/10/10 11:19:41 rws Exp $ */
 /* Copyright International Business Machines,Corp. 1991
  * All Rights Reserved

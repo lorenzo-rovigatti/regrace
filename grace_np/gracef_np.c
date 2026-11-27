@@ -1,3 +1,4 @@
+/* Modified in 2026 for regrace; see README.md. */
 #include <config.h>
 
 #if defined(WITH_F77_WRAPPER)
